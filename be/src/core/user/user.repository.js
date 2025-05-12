@@ -1,13 +1,13 @@
 const db = require('../../database/pg.database');
 
 // Membuat user baru
-exports.createUser = async ({ name, username, email, hashedPassword, role }) => {
+exports.createUser = async ({ name, username, email, hashedPassword, level }) => {
     try {
         const result = await db.query(
-            `INSERT INTO users (name, username, email, password, role)
+            `INSERT INTO users (name, username, email, password, level)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING id, name, username, email, role, level`,
-            [name, username, email, hashedPassword, role]
+            [name, username, email, hashedPassword, level]
         );
         return result.rows[0];
     } catch (err) {
