@@ -50,3 +50,45 @@ exports.getUserGroups = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error", payload: null });
     }
 };
+
+// Menghapus grup (hanya bisa oleh pembuat)
+exports.deleteGroup = async (req, res) => {
+    try {
+        const group_id = req.params.group_id;
+        const user_id = req.user.user_id;
+
+        const deleted = await groupRepo.deleteGroup({ group_id, user_id });
+
+        if (!deleted) {
+            return res.status(403).json({ success: false, message: "Only group creator can delete this group" });
+        }
+
+        res.json({ success: true, message: "Group deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server error", payload: null });
+    }
+};
+
+// Menambahkan komentar ke grup
+exports.addGroupComment = async (req, res) => {
+    try {
+        const comment = await groupRepo.addGroupComment({
+            group_id: req.params.group_id,
+            user_id: req.user.user_id,
+            content: req.body.content
+        });
+        res.status(201).json({ success: true, message: "Group comment added", payload: comment });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server error", payload: null });
+    }
+};
+
+// Mengambil komentar dari grup
+exports.getGroupComments = async (req, res) => {
+    try {
+        const comments = await groupRepo.getGroupComments(req.params.group_id);
+        res.json({ success: true, message: "Group comments retrieved", payload: comments });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server error", payload: null });
+    }
+};

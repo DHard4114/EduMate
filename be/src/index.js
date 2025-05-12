@@ -14,6 +14,7 @@ app.use('/user', require('./core/user/user.route'));
 app.use('/pomodoro', require('./features/pomodoro/pomodoro.route'));
 app.use('/group', require('./features/task_group/group.route'));
 app.use('/task', require('./features/task_management/task.route'));
+app.use('/course', require('./features/course/course.route'));
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

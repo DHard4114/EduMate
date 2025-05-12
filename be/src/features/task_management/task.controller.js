@@ -99,25 +99,12 @@ exports.getFilteredTasks = async (req, res) => {
     }
 };
 
-// Menambahkan komentar ke task
-exports.addTaskComment = async (req, res) => {
+// Mengambil progress task dalam task group
+exports.getTaskProgress = async (req, res) => {
     try {
-        const comment = await taskRepo.addTaskComment({
-            task_id: req.params.id,
-            user_id: req.user.user_id,
-            content: req.body.content
-        });
-        res.status(201).json({ success: true, message: "Comment added", payload: comment });
-    } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
-    }
-};
-
-// Mengambil semua komentar dari task
-exports.getTaskComments = async (req, res) => {
-    try {
-        const comments = await taskRepo.getTaskComments(req.params.id);
-        res.json({ success: true, message: "Comments retrieved", payload: comments });
+        const { group_id } = req.params;
+        const progress = await taskRepo.getTaskProgress(group_id);
+        res.json({ success: true, message: "Task progress retrieved", payload: progress });
     } catch (err) {
         res.status(500).json({ success: false, message: "Server error", payload: null });
     }

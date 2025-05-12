@@ -6,7 +6,6 @@ module.exports = async function checkGroupMembership(req, res, next) {
     
     // Mengambil group_id dari parameter atau body
     const groupId = req.params.group_id || req.body.group_id;
-
     if (!groupId) {
         return res.status(400).json({ success: false, message: "Group ID is required" });
     }

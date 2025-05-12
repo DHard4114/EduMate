@@ -83,24 +83,18 @@ exports.getFilteredTasks = async (group_id, status) => {
     return result.rows;
 };
 
-// Menambahkan komentar baru ke dalam task tertentu
-exports.addTaskComment = async ({ task_id, user_id, content }) => {
-    const result = await query(
-        `INSERT INTO task_comments (task_id, user_id, content) VALUES ($1, $2, $3) RETURNING *`,
-        [task_id, user_id, content]
-    );
-    return result.rows[0];
-};
+// Menghitung jumlah task selesai dan total dalam satu grup, serta persentasenya
+exports.getTaskProgress = async (group_id) => {
+    const result = await query(`
+        SELECT 
+            COUNT(*) FILTER (WHERE status = 'done') AS completed,
+            COUNT(*) AS total
+        FROM tasks
+        WHERE group_id = $1
+    `, [group_id]);
 
-// Mengambil semua komentar untuk suatu task
-exports.getTaskComments = async (task_id) => {
-    const result = await query(
-        `SELECT task_comments.id, task_comments.content, task_comments.created_at, users.username
-         FROM task_comments
-         JOIN users ON users.id = task_comments.user_id
-         WHERE task_comments.task_id = $1
-         ORDER BY task_comments.created_at`,
-        [task_id]
-    );
-    return result.rows;
+    const { completed, total } = result.rows[0];
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+    return { completed: parseInt(completed), total: parseInt(total), percentage };
 };
