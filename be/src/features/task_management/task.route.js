@@ -11,7 +11,6 @@ router.delete('/:id', verifyToken, taskController.deleteTask);
 router.get('/:id', verifyToken, taskController.getTaskById);
 router.get('/group/:group_id/summary', verifyToken, checkGroupMembership, taskController.getTaskSummaryByGroup);
 router.get('/group/:group_id/filter', verifyToken, taskController.getFilteredTasks);
-router.post('/:id/comments', verifyToken, taskController.addTaskComment);
-router.get('/:id/comments', verifyToken, taskController.getTaskComments);
+router.get('/group/:group_id/progress', verifyToken, taskController.getTaskProgress);
 
 module.exports = router;

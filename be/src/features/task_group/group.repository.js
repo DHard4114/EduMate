@@ -71,3 +71,37 @@ exports.getGroupsByUser = async (user_id) => {
     );
     return result.rows;
 };
+
+// Menghapus grup (hanya bisa oleh pembuat)
+exports.deleteGroup = async ({ group_id, user_id }) => {
+    const result = await db.query(
+        `DELETE FROM task_groups
+         WHERE id = $1 AND created_by = $2
+         RETURNING *`,
+        [group_id, user_id]
+    );
+    return result.rowCount > 0;
+};
+
+// Menambahkan komentar untuk grup
+exports.addGroupComment = async ({ group_id, user_id, content }) => {
+    const result = await db.query(
+        `INSERT INTO group_comments (group_id, user_id, content)
+         VALUES ($1, $2, $3) RETURNING *`,
+        [group_id, user_id, content]
+    );
+    return result.rows[0];
+};
+
+// Mengambil komentar grup
+exports.getGroupComments = async (group_id) => {
+    const result = await db.query(
+        `SELECT group_comments.id, group_comments.content, group_comments.created_at, users.username
+        FROM group_comments
+        JOIN users ON users.id = group_comments.user_id
+        WHERE group_comments.group_id = $1
+        ORDER BY group_comments.created_at`,
+        [group_id]
+    );
+    return result.rows;
+};
