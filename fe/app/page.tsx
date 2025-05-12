@@ -1,13 +1,14 @@
 //import Image from "next/image";
 import NavBar from "./component/NavBar";
-import TaskManagerPage from "./Pages/task-manager/TaskManagement"
-import CreateGroupPage from "./component/task-management/create-group/MakeGroup";
+import TaskManagerPage from "./content/task-manager/page"
+import CreateGroupPage from "./component/task-management/create-group/page";
+import SignupPage from "./signup/page";
 
 
 export default function Page() {
   return (
     <div>
-      <TaskManagerPage />
+      <SignupPage />
     </div>
   );
 }
