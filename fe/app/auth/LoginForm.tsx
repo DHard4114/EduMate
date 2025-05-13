@@ -13,12 +13,14 @@ import {
     AuthButton,
     AuthToggle
 } from '../component/auth-component/page';
+import { useAuth } from '../component/auth-context';
 
 export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFormProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const router = useRouter();
+    const { setUser } = useAuth();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -41,7 +43,10 @@ export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFor
         }
 
         localStorage.setItem('token', data.token);
-        router.push('/dashboard');
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
+        console.log('Login response:', data);
+        router.push('/content/course');
         } catch (err) {
         setError(err.message);
         setLoading(false);

@@ -11,9 +11,9 @@ const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () =
     // Not really sure how it went. Need more troubleshooting
     const getActiveState = (text: string) => {
         const routeMap: Record<string, string> = {
-            'Course': '/content/contact',
+            'Course': '/content/course',
             'Task Manager': '/content/task-manager',
-            'Account': '/content/about'
+            'Account': '/content/account'
         };
         return pathname?.startsWith(routeMap[text] || '');
     };

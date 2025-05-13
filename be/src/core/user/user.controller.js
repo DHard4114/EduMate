@@ -66,7 +66,14 @@ exports.login = async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRES || '6h' }
         );
 
-        res.json({ success: true, message: "Login successful", token });
+        res.json({ success: true, message: "Login successful", token, user: {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            level: user.level
+        } });
     } catch (err) {
         console.error("Login error:", err);
         res.status(500).json({ success: false, message: "Server error", payload: null });
