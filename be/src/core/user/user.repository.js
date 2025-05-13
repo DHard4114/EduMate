@@ -1,16 +1,17 @@
 const db = require('../../database/pg.database');
 
 // Membuat user baru
-exports.createUser = async ({ name, username, email, hashedPassword, level }) => {
+exports.createUser = async ({ name, username, email, hashedPassword, role, level }) => {
     try {
         const result = await db.query(
-            `INSERT INTO users (name, username, email, password, level)
-             VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, name, username, email, role, level`,
-            [name, username, email, hashedPassword, level]
+            `INSERT INTO users (name, username, email, password, role, level)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, name, username, email, role, level`,
+            [name, username, email, hashedPassword, role, level]
         );
         return result.rows[0];
     } catch (err) {
+        console.error(err);
         if (err.code === '23505') {
             if (err.detail.includes('username')) {
                 throw new Error("USERNAME_EXISTS");

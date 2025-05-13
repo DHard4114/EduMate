@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 
 // Registrasi user baru
 exports.register = async (req, res) => {
-    const user = await userRepo.createUser({ name, username, email, password: hashed, level });
+    const { name, username, email, password, level, role } = req.body;
 
     // Validasi panjang password
     if (password.length < 8) {
@@ -17,7 +17,14 @@ exports.register = async (req, res) => {
 
     try {
         const hashed = await bcrypt.hash(password, 10);
-        const user = await userRepo.createUser({ name, username, email, hashedPassword: hashed, level });
+        const user = await userRepo.createUser({ 
+            name, 
+            username, 
+            email, 
+            hashedPassword: hashed, 
+            role, 
+            level 
+        });
         res.status(201).json({ success: true, message: "User registered", payload: user });
     } catch (err) {
         if (err.message === "EMAIL_EXISTS") {
