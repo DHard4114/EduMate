@@ -40,8 +40,17 @@ exports.register = async (req, res) => {
 // Login dan generate JWT token
 exports.login = async (req, res) => {
     const { email, password } = req.body;
+
     try {
-        const user = await userRepo.findByEmail(email);
+        let user;
+
+        // Cek apakah input adalah email (mengandung "@")
+        if (email.includes('@')) {
+            user = await userRepo.findByEmail(email);
+        } else {
+            user = await userRepo.findByUsername(email);
+        }
+
         if (!user) {
             return res.status(401).json({ success: false, message: "Invalid credentials", payload: null });
         }
@@ -59,6 +68,7 @@ exports.login = async (req, res) => {
 
         res.json({ success: true, message: "Login successful", token });
     } catch (err) {
+        console.error("Login error:", err);
         res.status(500).json({ success: false, message: "Server error", payload: null });
     }
 };

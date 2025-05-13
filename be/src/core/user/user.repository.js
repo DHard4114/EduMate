@@ -39,6 +39,13 @@ exports.findById = async (id) => {
     return result.rows[0];
 };
 
+exports.findByUsername = async (username) => {
+    const result = await db.query(
+        `SELECT * FROM users WHERE username = $1`, [username]
+    );
+    return result.rows[0];
+}
+
 // Update nama atau level user
 exports.updateProfile = async (id, { name, level }) => {
     let updates = [];
