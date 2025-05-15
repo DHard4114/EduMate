@@ -8,7 +8,7 @@ exports.createGroup = async (req, res) => {
         await groupRepo.addMemberToGroup(group.id, req.user.user_id); // auto join ke group
         res.status(201).json({ success: true, message: "Group created", payload: group });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -37,7 +37,7 @@ exports.getGroupMembers = async (req, res) => {
         const members = await groupRepo.getGroupMembers(group_id);
         res.json({ success: true, message: "Members retrieved", payload: members });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -47,7 +47,7 @@ exports.getUserGroups = async (req, res) => {
         const groups = await groupRepo.getGroupsByUser(req.user.user_id);
         res.json({ success: true, message: "Groups retrieved", payload: groups });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -65,7 +65,7 @@ exports.deleteGroup = async (req, res) => {
 
         res.json({ success: true, message: "Group deleted successfully" });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -79,7 +79,7 @@ exports.addGroupComment = async (req, res) => {
         });
         res.status(201).json({ success: true, message: "Group comment added", payload: comment });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -89,6 +89,6 @@ exports.getGroupComments = async (req, res) => {
         const comments = await groupRepo.getGroupComments(req.params.group_id);
         res.json({ success: true, message: "Group comments retrieved", payload: comments });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };

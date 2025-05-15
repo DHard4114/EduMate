@@ -8,6 +8,7 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     role TEXT CHECK (role IN ('student', 'teacher')) NOT NULL,
     level TEXT CHECK (level IN ('beginner', 'intermediate', 'advanced')) DEFAULT 'beginner',
+    profile_picture_url TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 

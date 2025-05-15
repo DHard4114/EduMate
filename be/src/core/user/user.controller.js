@@ -1,6 +1,7 @@
 const userRepo = require('./user.repository');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const cloudinary = require('../../utils/cloudinary');
 
 // Registrasi user baru
 exports.register = async (req, res) => {
@@ -16,6 +17,23 @@ exports.register = async (req, res) => {
     }
 
     try {
+        let profile_picture_url = null;
+
+        // Upload gambar ke cloudinary (jika ada)
+        if (req.file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    { folder: 'profile_pictures' },
+                    (err, result) => {
+                        if (err) return reject(new Error("Image upload failed"));
+                        resolve(result);
+                    }
+                ).end(req.file.buffer);
+            });
+
+            profile_picture_url = uploadResult.secure_url;
+        }
+
         const hashed = await bcrypt.hash(password, 10);
         const user = await userRepo.createUser({ 
             name, 
@@ -23,7 +41,8 @@ exports.register = async (req, res) => {
             email, 
             hashedPassword: hashed, 
             role, 
-            level 
+            level,
+            profile_picture_url
         });
         res.status(201).json({ success: true, message: "User registered", payload: user });
     } catch (err) {
@@ -33,7 +52,7 @@ exports.register = async (req, res) => {
         if (err.message === "USERNAME_EXISTS") {
             return res.status(400).json({ success: false, message: "Username already exists", payload: null });
         }
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -72,11 +91,12 @@ exports.login = async (req, res) => {
             username: user.username,
             email: user.email,
             role: user.role,
-            level: user.level
+            level: user.level,
+            profile_picture_url: user.profile_picture_url
         } });
     } catch (err) {
         console.error("Login error:", err);
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -89,7 +109,7 @@ exports.getProfile = async (req, res) => {
         }
         res.json({ success: true, message: "Profile retrieved", payload: user });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -103,10 +123,32 @@ exports.updateProfile = async (req, res) => {
     }
 
     try {
-        const updated = await userRepo.updateProfile(req.user.user_id, { name, level });
+        let profile_picture_url = null;
+
+        // Upload foto profil baru (jika ada)
+        if (req.file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    { folder: 'profile_pictures' },
+                    (err, result) => {
+                        if (err) return reject(new Error("Image upload failed"));
+                        resolve(result);
+                    }
+                ).end(req.file.buffer);
+            });
+
+            profile_picture_url = uploadResult.secure_url;
+        }
+        else {
+            // Menggunakan foto profil lama jika tidak upload yang baru
+            const existing = await userRepo.findById(req.user.user_id);
+            profile_picture_url = existing.profile_picture_url;
+        }
+
+        const updated = await userRepo.updateProfile(req.user.user_id, { name, level, profile_picture_url });
         res.json({ success: true, message: "Profile updated", payload: updated });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -119,6 +161,6 @@ exports.deleteUser = async (req, res) => {
         }
         res.json({ success: true, message: "User deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };

@@ -17,7 +17,7 @@ exports.createTask = async (req, res) => {
         const task = await taskRepo.createTask(req.body);
         res.status(201).json({ success: true, message: "Task created", payload: task });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -27,7 +27,7 @@ exports.getTasksByGroup = async (req, res) => {
         const tasks = await taskRepo.getTasksByGroup(req.params.group_id);
         res.json({ success: true, message: "Tasks retrieved", payload: tasks });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -45,7 +45,7 @@ exports.updateTask = async (req, res) => {
         const updated = await taskRepo.updateTask(req.params.id, req.body);
         res.json({ success: true, message: "Task updated", payload: updated });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -63,7 +63,7 @@ exports.deleteTask = async (req, res) => {
         const deleted = await taskRepo.deleteTask(req.params.id);
         res.json({ success: true, message: "Task deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -74,7 +74,7 @@ exports.getTaskById = async (req, res) => {
         if (!task) return res.status(404).json({ success: false, message: "Task not found", payload: null });
         res.json({ success: true, message: "Task retrieved", payload: task });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -84,7 +84,7 @@ exports.getTaskSummaryByGroup = async (req, res) => {
         const summary = await taskRepo.getTaskSummaryByGroup(req.params.group_id);
         res.json({ success: true, message: "Task summary", payload: summary });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -95,7 +95,7 @@ exports.getFilteredTasks = async (req, res) => {
         const tasks = await taskRepo.getFilteredTasks(req.params.group_id, status);
         res.json({ success: true, message: "Filtered tasks", payload: tasks });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -106,6 +106,6 @@ exports.getTaskProgress = async (req, res) => {
         const progress = await taskRepo.getTaskProgress(group_id);
         res.json({ success: true, message: "Task progress retrieved", payload: progress });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
