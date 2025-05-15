@@ -33,11 +33,11 @@ exports.deleteCourseMaterial = async (id) => {
 };
 
 // Membuat soal kuis
-exports.createCourseQuiz = async ({ course_id, question, options, correct_answer }) => {
+exports.createCourseQuiz = async ({ course_id, question, options, correct_answer, quiz_image_url }) => {
     const result = await query(
-        `INSERT INTO course_quizzes (course_id, question, options, correct_answer)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
-        [course_id, question, options, correct_answer]
+        `INSERT INTO course_quizzes (course_id, question, options, correct_answer, quiz_image_url)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [course_id, question, options, correct_answer, quiz_image_url]
     );
     return result.rows[0];
 };

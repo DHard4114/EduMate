@@ -1,10 +1,16 @@
 const courseRepo = require('./course.repository');
+const cloudinary = require('../../utils/cloudinary');
 
 // Membuat course baru
 exports.createCourse = async (req, res) => {
     try {
         const { title, level, description } = req.body;
-        const created = await courseRepo.createCourse({ title, level, description });
+        const created = await courseRepo.createCourse({ 
+            title, 
+            level, 
+            description 
+        });
+
         res.status(201).json({ success: true, message: "Course created", payload: created });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message, payload: null });
@@ -25,11 +31,17 @@ exports.deleteCourse = async (req, res) => {
     }
 };
 
-// Membuat materi (text/video)
+// Membuat materi
 exports.createCourseMaterial = async (req, res) => {
     try {
         const { course_id, type, content, order_number } = req.body;
-        const material = await courseRepo.createCourseMaterial({ course_id, type, content, order_number });
+        const material = await courseRepo.createCourseMaterial({ 
+            course_id, 
+            type, 
+            content, 
+            order_number 
+        });
+
         res.status(201).json({ success: true, message: "Material added", payload: material });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -53,8 +65,36 @@ exports.deleteCourseMaterial = async (req, res) => {
 // Membuat soal kuis
 exports.createCourseQuiz = async (req, res) => {
     try {
-        const { course_id, question, options, correct_answer } = req.body;
-        const quiz = await courseRepo.createCourseQuiz({ course_id, question, options, correct_answer });
+        let quiz_image_url = null;
+        
+        // Upload gambar ke cloudinary (jika ada)
+        if (req.file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    { folder: 'quiz_image' },
+                    (err, result) => {
+                        if (err) return reject(new Error("Image upload failed"));
+                        resolve(result);
+                    }
+                ).end(req.file.buffer);
+            });
+
+            quiz_image_url = uploadResult.secure_url;
+        }
+        
+        let { course_id, question, options, correct_answer } = req.body;
+
+        if (typeof options === 'string') {
+            options = options.replace(/'/g, '').split(',').map(o => o.trim());
+        }
+
+        const quiz = await courseRepo.createCourseQuiz({ 
+            course_id, 
+            question, 
+            options, 
+            correct_answer, 
+            quiz_image_url 
+        });
         res.status(201).json({ success: true, message: "Quiz added", payload: quiz });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -81,7 +121,11 @@ exports.answerQuiz = async (req, res) => {
         const user_id = req.user.user_id;
         const { quiz_id, selected_answer } = req.body;
 
-        const saved = await courseRepo.answerQuiz({ user_id, quiz_id, selected_answer });
+        const saved = await courseRepo.answerQuiz({ 
+            user_id, 
+            quiz_id, 
+            selected_answer 
+        });
         res.status(200).json({ success: true, message: "Answer saved", payload: saved });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
