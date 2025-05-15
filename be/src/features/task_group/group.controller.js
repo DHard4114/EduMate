@@ -3,7 +3,11 @@ const groupRepo = require('./group.repository');
 // Membuat tugas grup baru
 exports.createGroup = async (req, res) => {
     try {
-        const group = await groupRepo.createGroup({ name: req.body.name, created_by: req.user.user_id });
+        const group = await groupRepo.createGroup({ 
+            name: req.body.name, 
+            created_by: req.user.user_id 
+        });
+        
         // Menambahkan pembuat sebagai anggota grup
         await groupRepo.addMemberToGroup(group.id, req.user.user_id); // auto join ke group
         res.status(201).json({ success: true, message: "Group created", payload: group });

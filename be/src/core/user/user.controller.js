@@ -145,7 +145,11 @@ exports.updateProfile = async (req, res) => {
             profile_picture_url = existing.profile_picture_url;
         }
 
-        const updated = await userRepo.updateProfile(req.user.user_id, { name, level, profile_picture_url });
+        const updated = await userRepo.updateProfile(req.user.user_id, { 
+            name, 
+            level, 
+            profile_picture_url 
+        });
         res.json({ success: true, message: "Profile updated", payload: updated });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message, payload: null });

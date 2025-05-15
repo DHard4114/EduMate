@@ -75,6 +75,7 @@ CREATE TABLE course_quizzes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
     question TEXT NOT NULL,
+    quiz_image_url TEXT,
     options TEXT[] NOT NULL,
     correct_answer TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()

@@ -1,20 +1,27 @@
 const taskRepo = require('./task.repository');
-const { query } = require('../../database/pg.database');
 
 // Membuat task baru dalam suatu grup (harus anggota grup)
 exports.createTask = async (req, res) => {
-    const { group_id, title } = req.body;
+    const { group_id, title, description, status, deadline, assigned_to } = req.body;
+
     if (!group_id || !title) {
         return res.status(400).json({ success: false, message: "group_id and title are required", payload: null });
     }
 
     try {
-        const member = await query(`SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2`, [group_id, req.user.user_id]);
-        if (member.rows.length === 0) {
+        const isMember = await taskRepo.checkGroupMembership(group_id, req.user.user_id);
+        if (!isMember) {
             return res.status(403).json({ success: false, message: "You are not a member of this group" });
         }
 
-        const task = await taskRepo.createTask(req.body);
+        const task = await taskRepo.createTask({ 
+            group_id, 
+            title, 
+            description, 
+            status, 
+            deadline, 
+            assigned_to 
+        });
         res.status(201).json({ success: true, message: "Task created", payload: task });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message, payload: null });
@@ -35,10 +42,12 @@ exports.getTasksByGroup = async (req, res) => {
 exports.updateTask = async (req, res) => {
     try {
         const task = await taskRepo.getTaskById(req.params.id);
-        if (!task) return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        if (!task) {
+            return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        }
 
-        const member = await query(`SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2`, [task.group_id, req.user.user_id]);
-        if (member.rows.length === 0) {
+        const isMember = await taskRepo.checkGroupMembership(task.group_id, req.user.user_id);
+        if (!isMember) {
             return res.status(403).json({ success: false, message: "You are not a member of this group" });
         }
 
@@ -53,10 +62,12 @@ exports.updateTask = async (req, res) => {
 exports.deleteTask = async (req, res) => {
     try {
         const task = await taskRepo.getTaskById(req.params.id);
-        if (!task) return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        if (!task) {
+            return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        }
 
-        const member = await query(`SELECT * FROM group_members WHERE group_id = $1 AND user_id = $2`, [task.group_id, req.user.user_id]);
-        if (member.rows.length === 0) {
+        const isMember = await taskRepo.checkGroupMembership(task.group_id, req.user.user_id);
+        if (!isMember) {
             return res.status(403).json({ success: false, message: "You are not a member of this group" });
         }
 
@@ -71,7 +82,9 @@ exports.deleteTask = async (req, res) => {
 exports.getTaskById = async (req, res) => {
     try {
         const task = await taskRepo.getTaskById(req.params.id);
-        if (!task) return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        if (!task) {
+            return res.status(404).json({ success: false, message: "Task not found", payload: null });
+        }
         res.json({ success: true, message: "Task retrieved", payload: task });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message, payload: null });
