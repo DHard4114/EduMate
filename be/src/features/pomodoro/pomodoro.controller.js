@@ -17,7 +17,7 @@ exports.saveSession = async (req, res) => {
         });
         res.status(201).json({ success: true, message: "Session saved", payload: session });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -27,7 +27,7 @@ exports.getSummary = async (req, res) => {
         const summary = await pomodoroRepo.getSummary(req.user.user_id);
         res.json({ success: true, message: "Summary retrieved", payload: summary });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -37,7 +37,7 @@ exports.getHistory = async (req, res) => {
         const history = await pomodoroRepo.getHistory(req.user.user_id);
         res.json({ success: true, message: "History retrieved", payload: history });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -50,6 +50,6 @@ exports.deleteSession = async (req, res) => {
         }
         res.json({ success: true, message: "Session deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };

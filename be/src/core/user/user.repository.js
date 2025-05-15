@@ -1,13 +1,13 @@
 const db = require('../../database/pg.database');
 
 // Membuat user baru
-exports.createUser = async ({ name, username, email, hashedPassword, role, level }) => {
+exports.createUser = async ({ name, username, email, hashedPassword, role, level, profile_picture_url }) => {
     try {
         const result = await db.query(
-            `INSERT INTO users (name, username, email, password, role, level)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO users (name, username, email, password, role, level, profile_picture_url)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, name, username, email, role, level`,
-            [name, username, email, hashedPassword, role, level]
+            [name, username, email, hashedPassword, role, level, profile_picture_url]
         );
         return result.rows[0];
     } catch (err) {
@@ -33,7 +33,7 @@ exports.findByEmail = async (email) => {
 // Mencari user berdasarkan ID
 exports.findById = async (id) => {
     const result = await db.query(
-        `SELECT id, name, username, email, role, level FROM users WHERE id = $1`,
+        `SELECT id, name, username, email, role, level, profile_picture_url FROM users WHERE id = $1`,
         [id]
     );
     return result.rows[0];
@@ -47,7 +47,7 @@ exports.findByUsername = async (username) => {
 }
 
 // Update nama atau level user
-exports.updateProfile = async (id, { name, level }) => {
+exports.updateProfile = async (id, { name, level, profile_picture_url }) => {
     let updates = [];
     let values = [];
     let idx = 1;
@@ -62,6 +62,11 @@ exports.updateProfile = async (id, { name, level }) => {
         values.push(level);
     }
 
+    if (profile_picture_url) {
+        updates.push(`profile_picture_url = $${idx++}`);
+        values.push(profile_picture_url);
+    }
+
     if (updates.length === 0) return null;
     values.push(id);
 
@@ -69,7 +74,7 @@ exports.updateProfile = async (id, { name, level }) => {
         `UPDATE users 
          SET ${updates.join(', ')} 
          WHERE id = $${idx} 
-         RETURNING id, name, username, email, level, role`,
+         RETURNING id, name, username, email, level, role, profile_picture_url`,
         values
     );
 

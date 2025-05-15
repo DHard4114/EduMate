@@ -9,6 +9,18 @@ exports.createGroup = async ({ name, created_by }) => {
     return result.rows[0];
 };
 
+// Menambahkan user ke grup berdasarkan user_id
+exports.addMemberToGroup = async (group_id, user_id) => {
+    const result = await db.query(
+        `INSERT INTO group_members (group_id, user_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING
+         RETURNING *`,
+        [group_id, user_id]
+    );
+    return result.rows[0];
+};
+
 // Menambahkan user ke grup berdasarkan username (oleh anggota grup)
 exports.addMemberToGroupByUsername = async ({ group_id, added_by_id, username }) => {
     // Cek keanggotaan user yang menambahkan

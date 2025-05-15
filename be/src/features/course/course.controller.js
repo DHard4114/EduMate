@@ -7,7 +7,7 @@ exports.createCourse = async (req, res) => {
         const created = await courseRepo.createCourse({ title, level, description });
         res.status(201).json({ success: true, message: "Course created", payload: created });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -21,7 +21,7 @@ exports.deleteCourse = async (req, res) => {
         }
         res.json({ success: true, message: "Course deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -46,7 +46,7 @@ exports.deleteCourseMaterial = async (req, res) => {
         }
         res.json({ success: true, message: "Material deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -71,7 +71,7 @@ exports.deleteCourseQuiz = async (req, res) => {
         }
         res.json({ success: true, message: "Quiz deleted", payload: deleted });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -84,7 +84,7 @@ exports.answerQuiz = async (req, res) => {
         const saved = await courseRepo.answerQuiz({ user_id, quiz_id, selected_answer });
         res.status(200).json({ success: true, message: "Answer saved", payload: saved });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error" });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
@@ -97,7 +97,7 @@ exports.getCourseById = async (req, res) => {
         }
         res.json({ success: true, message: "Course retrieved", payload: course });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -107,7 +107,7 @@ exports.getAllCourses = async (req, res) => {
         const courses = await courseRepo.getAllCourses();
         res.json({ success: true, message: "Courses retrieved", payload: courses });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -118,7 +118,7 @@ exports.getCoursesByLevel = async (req, res) => {
         const courses = await courseRepo.getCoursesByLevel(level);
         res.json({ success: true, message: "Courses retrieved by level", payload: courses });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
 
@@ -146,6 +146,6 @@ exports.getLevelProgress = async (req, res) => {
             payload: progress
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };

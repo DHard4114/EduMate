@@ -23,6 +23,6 @@ module.exports = async function checkGroupMembership(req, res, next) {
 
         next(); // Lanjut program
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server error", payload: null });
+        res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
