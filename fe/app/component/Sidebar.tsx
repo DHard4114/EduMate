@@ -1,3 +1,4 @@
+// Navigation Bar when you logged in. Have brief profile, Course, Task Management, and Profile (Pomodoro if you want it seperated. A)
 'use client'
 import UserProfile from './UserProfile';
 import ThemeToggle from './ThemeToggle';
@@ -9,12 +10,12 @@ const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () =
     const pathname = usePathname();
 
     // Not really sure how it went. Need more troubleshooting
-    const getActiveState = (text: string) => {
-        const routeMap: Record<string, string> = {
+    const routeMap: Record<string, string> = {
             'Course': '/content/course',
             'Task Manager': '/content/task-manager',
             'Account': '/content/account'
-        };
+    };
+    const getActiveState = (text: string) => {
         return pathname?.startsWith(routeMap[text] || '');
     };
 
@@ -40,18 +41,21 @@ const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () =
                             icon={<FaHome size={20} />} 
                             text="Course" 
                             active={getActiveState('Course')} 
+                            route={routeMap['Course']}
                         />
                         <NavItem 
                             isOpen={isOpen} 
                             icon={<FaTasks size={20} />} 
                             text="Task Manager" 
                             active={getActiveState('Task Manager')} 
+                            route={routeMap['Task Manager']} 
                         />
                         <NavItem 
                             isOpen={isOpen} 
                             icon={<FaUser size={20} />} 
                             text="Account" 
                             active={getActiveState('Account')} 
+                            route={routeMap['Account']} 
                         />
                     </ul>
                 </nav>
@@ -62,11 +66,11 @@ const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () =
     );
 };
 
-const NavItem = ({ isOpen, icon, text, active = false }: { isOpen: boolean; icon: React.ReactNode; text: string; active?: boolean }) => {
+const NavItem = ({ isOpen, icon, text, active = false, route }: { isOpen: boolean; icon: React.ReactNode; text: string; active?: boolean, route: string }) => {
     return (
         <li className="relative group">
             <a 
-                href={`/${text.toLowerCase().replace(' ', '-')}`}
+                href={route}
                 className={`flex items-center p-3 pl-5 rounded-lg transition-colors duration-200 relative
                     ${active 
                         ? 'bg-white text-fontgreen font-semibold' 
