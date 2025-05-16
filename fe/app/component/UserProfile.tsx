@@ -1,3 +1,4 @@
+// It shows profile on the account's navigation bar
 'use client';
 
 import { useEffect, useState } from 'react';

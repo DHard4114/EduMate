@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+
 import { AuthFormProps } from './AuthType';
 import {
     AuthIllustration,
@@ -28,92 +30,90 @@ export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFor
         setError('');
 
         try {
-        const response = await fetch('http://localhost:5001/user/login', {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-        });
+            const response = await axios.post('http://localhost:5001/user/login', {
+                email,
+                password
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
 
-        const data = await response.json();
+            const data = response.data;
 
-        if (!response.ok) {
-            throw new Error(data.message || 'Login failed');
-        }
-
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        setUser(data.user);
-        console.log('Login response:', data);
-        router.push('/content/course');
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+            console.log('Login response:', data);
+            router.push('/content/course');
+            
         } catch (err) {
-        setError(err.message);
-        setLoading(false);
+            setError(err.response?.data?.message || err.message || 'Login failed');
+            setLoading(false);
         }
     };
 
     return (
         <motion.div
-        initial={{ opacity: 0, x: -300 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: 300 }}
-        transition={{ 
-            type: 'spring',
-            stiffness: 100,
-            damping: 20
-        }}
-        className="flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden"
+            initial={{ opacity: 0, x: -300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            transition={{ 
+                type: 'spring',
+                stiffness: 100,
+                damping: 20
+            }}
+            className="flex flex-col md:flex-row bg-white rounded-2xl shadow-2xl overflow-hidden"
         >
-        <AuthIllustration 
-            title="Welcome Back!"
-            description="Sign in to continue your learning journey and track your progress."
-            imageSrc="/Book2.png"
-        />
-
-        <AuthFormContainer>
-            <AuthHeader title="Welcome Back" subtitle="Sign in to your account" />
-            
-            {error && <AuthError error={error} />}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-            <AuthInput
-                label="Email or Username"
-                id="email"
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email or username"
-                delay={0.5}
+            <AuthIllustration 
+                title="Welcome Back!"
+                description="Sign in to continue your learning journey and track your progress."
+                imageSrc="/Book2.png"
             />
 
-            <AuthInput
-                label="Password"
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                delay={0.6}
-            />
+            <AuthFormContainer>
+                <AuthHeader title="Welcome Back" subtitle="Sign in to your account" />
+                
+                {error && <AuthError error={error} />}
 
-            <AuthRememberForgot delay={0.7} />
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <AuthInput
+                        label="Email or Username"
+                        id="email"
+                        type="text"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email or username"
+                        delay={0.5}
+                    />
 
-            <AuthButton 
-                loading={loading} 
-                text="Sign in" 
-                loadingText="Signing in..." 
-                delay={0.8}
-            />
-            </form>
+                    <AuthInput
+                        label="Password"
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter your password"
+                        delay={0.6}
+                    />
 
-            <AuthToggle 
-            text="Don't have an account?"
-            buttonText="Sign up"
-            onToggle={onToggleAuth}
-            delay={0.9}
-            />
-        </AuthFormContainer>
+                    <AuthRememberForgot delay={0.7} />
+
+                    <AuthButton 
+                        loading={loading} 
+                        text="Sign in" 
+                        loadingText="Signing in..." 
+                        delay={0.8}
+                    />
+                </form>
+
+                <AuthToggle 
+                    text="Don't have an account?"
+                    buttonText="Sign up"
+                    onToggle={onToggleAuth}
+                    delay={0.9}
+                />
+            </AuthFormContainer>
         </motion.div>
     );
 }

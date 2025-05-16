@@ -1,3 +1,4 @@
+// Login and Sign up To switch between the two
 'use client'
 import { motion } from 'framer-motion';
 import Image from 'next/image';

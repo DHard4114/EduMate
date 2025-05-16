@@ -113,6 +113,16 @@ exports.getProfile = async (req, res) => {
     }
 };
 
+exports.getUsers = async (req, res) => {
+    try {
+        const users = await userRepo.getAllUser();
+        res.status(200).json({ success: true, data: users});
+    } catch (error) {
+        console.error('Error getting users:', error);
+        res.status(500).json({ success: false, message: 'Failed to retrieve users', error: error.message
+        });
+    }
+};
 // Update nama dan level user
 exports.updateProfile = async (req, res) => {
     const { name, level } = req.body;

@@ -46,6 +46,13 @@ exports.findByUsername = async (username) => {
     return result.rows[0];
 }
 
+exports.getAllUser = async () => {
+    const result = await db.query(
+        `SELECT * FROM users`
+    );
+    return result.rows;
+}
+
 // Update nama atau level user
 exports.updateProfile = async (id, { name, level, profile_picture_url }) => {
     let updates = [];

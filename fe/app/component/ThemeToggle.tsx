@@ -1,3 +1,4 @@
+//Still not working. I'm stick to the agreed upon color for Now. A.
 'use client'
 import { useState, useEffect } from 'react';
 import { MdModeNight, MdOutlineLightMode } from "react-icons/md";
