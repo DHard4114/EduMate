@@ -83,8 +83,8 @@ export const levels = [
         image: '/Intermediate.png',
     },
     {
-        id: 'expert',
-        name: 'Expert',
+        id: 'advanced',
+        name: 'Advance',
         description: 'Operasi bilangan kompleks, desimal, persen, dan volume',
         image: '/Expert.png',
     },

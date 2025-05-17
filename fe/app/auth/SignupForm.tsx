@@ -64,12 +64,12 @@ export default function SignupForm({ onToggleAuth, loading, setLoading }: AuthFo
             });
 
             if (response.data.success) {
-                router.push('/auth');
+                window.location.reload()
             } else {
                 throw new Error(response.data.message || 'Registration failed');
             }
         } catch (err) {
-            setError(err.response?.data?.message || err.message || 'Registration failed');
+            setError(err?.response?.data?.message || err?.message || 'Registration failed');
             setLoading(false);
         }
     };

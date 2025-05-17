@@ -11,7 +11,7 @@ const TaskManagement = () => {
 
     const router = useRouter();
     const handleAddGroup = () => {
-        router.push('component/task-management/create-group');
+        router.push('task-manager/create-group');
     };
 
     return (
