@@ -65,6 +65,7 @@ CREATE TABLE courses (
 CREATE TABLE course_materials (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
     type TEXT CHECK (type IN ('text', 'video')) NOT NULL,
     content TEXT NOT NULL,
     order_number INTEGER,
