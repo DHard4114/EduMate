@@ -16,12 +16,12 @@ exports.deleteCourse = async (id) => {
 };
 
 // Menambahkan materi (text/video)
-exports.createCourseMaterial = async ({ course_id, type, content, order_number }) => {
+exports.createCourseMaterial = async ({ course_id, title, type,  content, order_number }) => {
     if (!["text", "video"].includes(type)) throw new Error("Invalid material type");
     const result = await query(
-        `INSERT INTO course_materials (course_id, type, content, order_number)
-         VALUES ($1, $2, $3, $4) RETURNING *`,
-        [course_id, type, content, order_number]
+        `INSERT INTO course_materials (course_id, title, type, content, order_number)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [course_id, title, type, content, order_number]
     );
     return result.rows[0];
 };

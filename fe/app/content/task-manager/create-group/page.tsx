@@ -5,25 +5,14 @@ import { FaUserFriends } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-
-type User = {
-    id: string;
-    name: string;
-    email: string;
-    username: string;
-    isSelected: boolean;
-};
-
-type Group = {
-    name: string;
-    description: string;
-    members: User[];
-};
+import { User, Group } from '@/app/component/create-group/types';
+import AddMembersModal from '@/app/component/create-group/AddMembersModal';
+import SuccessNotification from '@/app/component/create-group/SuccessNotification';
 
 const CreateGroupPage = () => {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<User[]>([]); // Added missing users state
     const [group, setGroup] = useState<Group>({
         name: '',
         description: '',
@@ -33,6 +22,21 @@ const CreateGroupPage = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState('');
+
+    const toggleUserSelection = (userId: string) => { // Added missing function
+        setUsers(users.map(user => 
+            user.id === userId ? { ...user, isSelected: !user.isSelected } : user
+        ));
+    };
+
+    const addSelectedUsers = (selectedUsers: User[]) => { // Added missing function
+        setGroup({
+            ...group,
+            members: [...group.members, ...selectedUsers]
+        });
+        setUsers(users.map(user => ({ ...user, isSelected: false })));
+        setSearchQuery('');
+    };
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -67,23 +71,6 @@ const CreateGroupPage = () => {
         setIsSearching(true);
     };
 
-    const toggleUserSelection = (userId: string) => {
-        setUsers(users.map(user => 
-            user.id === userId ? { ...user, isSelected: !user.isSelected } : user
-        ));
-    };
-
-    const addSelectedUsers = () => {
-        const selectedUsers = users.filter(user => user.isSelected);
-        setGroup({
-            ...group,
-            members: [...group.members, ...selectedUsers]
-        });
-        setUsers(users.map(user => ({ ...user, isSelected: false })));
-        setSearchQuery('');
-        setIsSearching(false);
-    };
-
     const removeMember = (userId: string) => {
         setGroup({
             ...group,
@@ -97,7 +84,6 @@ const CreateGroupPage = () => {
         setIsCreating(true);
         
         try {
-            // First, create the group
             const createResponse = await axios.post('http://localhost:5001/group/', {
                 name: group.name
             }, {
@@ -108,7 +94,6 @@ const CreateGroupPage = () => {
 
             const groupId = createResponse.data.payload.id;
 
-            // Then, add each member to the group
             const addMemberPromises = group.members.map(member => 
                 axios.post('http://localhost:5001/group/addmember', {
                     group_id: groupId,
@@ -125,10 +110,9 @@ const CreateGroupPage = () => {
             setShowSuccess(true);
             setTimeout(() => {
                 setShowSuccess(false);
-                router.push('/groups'); // Redirect to groups page after success
+                router.push('/groups');
             }, 2000);
             
-            // Reset form
             setGroup({
                 name: '',
                 description: '',
@@ -141,12 +125,6 @@ const CreateGroupPage = () => {
             setIsCreating(false);
         }
     };
-
-    const filteredUsers = users.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.username.toLowerCase().includes(searchQuery.toLowerCase())
-    );
 
     return (
         <div className="min-h-screen bg-basegreen from-basegreen to-green p-6">
@@ -240,111 +218,20 @@ const CreateGroupPage = () => {
                     </div>
                 </form>
 
-                {/* Search Modal */}
-                <AnimatePresence>
-                    {isSearching && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-                            onClick={() => setIsSearching(false)}
-                        >
-                            <motion.div
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: 20, opacity: 0 }}
-                                className="bg-white rounded-xl shadow-xl w-full max-w-md"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div className="p-4 border-b border-gray-200">
-                                    <h3 className="text-lg font-semibold text-gray-800">Add Members</h3>
-                                </div>
+                <AddMembersModal
+                    isOpen={isSearching}
+                    onClose={() => setIsSearching(false)}
+                    users={users}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onToggleUser={toggleUserSelection}
+                    onAddSelected={addSelectedUsers}
+                />
 
-                                <div className="p-4">
-                                    <form onSubmit={handleSearch} className="mb-4">
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fontgreen focus:border-fontgreen"
-                                                placeholder="Search by name, email or username"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                            />
-                                            <FiSearch className="absolute left-3 top-3 text-gray-400" />
-                                        </div>
-                                    </form>
-
-                                    <div className="max-h-96 overflow-y-auto">
-                                        {filteredUsers.length === 0 ? (
-                                            <div className="text-center py-4 text-gray-500">
-                                                No users found
-                                            </div>
-                                        ) : (
-                                            <ul className="space-y-2">
-                                                {filteredUsers.map(user => (
-                                                    <li key={user.id}>
-                                                        <div className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
-                                                            <div className="flex items-center">
-                                                                <div className="w-10 h-10 rounded-full bg-gray-200 mr-3 flex items-center justify-center">
-                                                                    <FiUser className="text-gray-500" />
-                                                                </div>
-                                                                <div>
-                                                                    <p className="font-medium text-gray-800">{user.name}</p>
-                                                                    <p className="text-sm text-gray-500">@{user.username}</p>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => toggleUserSelection(user.id)}
-                                                                className={`p-2 rounded-full ${user.isSelected ? 'bg-basegreen text-fontgreen' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                                                            >
-                                                                {user.isSelected ? <FiCheck /> : <FiUserPlus />}
-                                                            </button>
-                                                        </div>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 border-t border-gray-200 flex justify-end">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsSearching(false)}
-                                        className="px-4 py-2 mr-2 text-gray-600 hover:text-gray-800"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={addSelectedUsers}
-                                        disabled={!users.some(user => user.isSelected)}
-                                        className={`px-4 py-2 rounded-lg ${!users.some(user => user.isSelected) ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green text-white hover:bg-fontgreen'}`}
-                                    >
-                                        Add Selected
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* Success Notification */}
-                <AnimatePresence>
-                    {showSuccess && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 20 }}
-                            className="fixed bottom-6 right-6 bg-fontgreen text-white px-6 py-3 rounded-lg shadow-lg flex items-center"
-                        >
-                            <FiCheck className="mr-2 text-xl" />
-                            Group created successfully!
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                <SuccessNotification
+                    show={showSuccess}
+                    message="Group created successfully!"
+                />
             </div>
         </div>
     );

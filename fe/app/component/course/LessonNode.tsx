@@ -22,7 +22,7 @@ export const LessonNode: FC<LessonNodeProps> = ({
         <div
             className={
             `"w-16 h-16 rounded-full flex items-center justify-center text-white text-lg shadow-lg",
-            completed ? "bg-green-500" : current ? "bg-yellow-400" : "bg-gray-300"`
+            completed ? "bg-green" : current ? "bg-green" : "bg-gray-300"`
             }
         >
             {icon}

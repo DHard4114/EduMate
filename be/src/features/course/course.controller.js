@@ -34,9 +34,10 @@ exports.deleteCourse = async (req, res) => {
 // Membuat materi
 exports.createCourseMaterial = async (req, res) => {
     try {
-        const { course_id, type, content, order_number } = req.body;
+        const { course_id, title, type, content, order_number } = req.body;
         const material = await courseRepo.createCourseMaterial({ 
             course_id, 
+            title,
             type, 
             content, 
             order_number 
