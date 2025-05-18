@@ -4,6 +4,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import api from '../lib/api';
 
 type User = {
     id: number;
@@ -12,6 +13,7 @@ type User = {
     email: string;
     level: string;
     role?: string;
+    profile_picture?: string;
 };
 
 type AuthContextType = {
@@ -25,12 +27,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const router = useRouter();
-    const api = axios.create({
-        baseURL: 'http://localhost:5001',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    });
 
     api.interceptors.request.use(config => {
         const token = localStorage.getItem('token');
@@ -64,7 +60,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setUser(null);
-        router.push('/login');
+        router.push('/auth');
     };
 
     return (

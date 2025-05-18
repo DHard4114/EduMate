@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../lib/api';
 
 import { AuthFormProps } from './AuthType';
 import {
@@ -30,13 +30,9 @@ export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFor
         setError('');
 
         try {
-            const response = await axios.post('http://localhost:5001/user/login', {
+            const response = await api.post('/user/login', {
                 email,
                 password
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                }
             });
 
             const data = response.data;
@@ -45,7 +41,7 @@ export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFor
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             console.log('Login response:', data);
-            router.push('/content/course');
+            router.push('/content/account');
             
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'Login failed');
