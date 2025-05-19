@@ -1,28 +1,67 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export default function HeroSection() {
     return (
-        <section 
-        id="top"
-        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-violet-700 text-white px-4 text-center">
-        <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+        <section
+            id="top"
+            className="relative min-h-screen flex flex-col md:flex-row items-center justify-between bg-gradient-to-br from-[#fdfaf5] to-[#f5f4f3] px-10 py-20 overflow-hidden"
         >
-            <h1 className="text-5xl font-bold mb-4">Level Up Your Learning Experience with EduMate</h1>
-            <p className="text-lg mb-6 max-w-xl mx-auto">
-            A smarter, more engaging platform for students to explore interactive modules, manage group projects, and build productive study habits.
-            </p>
-            <motion.button
-            whileHover={{ scale: 1.05 }}
-            className="bg-white text-blue-700 font-semibold px-6 py-3 rounded-2xl shadow-md hover:bg-gray-100 transition"
+            {/* Gambar di kiri */}
+            <motion.div
+            initial={{ opacity: 0, x: -100, scale: 0.8, rotate: -5 }}
+            animate={{ opacity: 1, x: 0, scale: 1, rotate: 0 }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            className="md:w-1/2 ml-6"
             >
-            Get Started
-            </motion.button>
-        </motion.div>
+            <Image
+                src="/landing.svg"
+                alt="Background Illustration"
+                width={500}
+                height={550}
+                className="z-0"
+            />
+            </motion.div>
+
+            {/* Teks di kanan, dengan animasi satu per satu */}
+            <div className="z-10 w-full md:w-1/2 text-right md:pr-20">
+                
+                <motion.h1
+                    initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ duration: 0.8, ease: [0.34, 1.56, 0.64, 1], delay: 0.2 }}
+                    className="text-5xl md:text-7xl font-extrabold text-[#5A6D51] mb-6 leading-tight"
+                    >
+                    Learn Smarter<br />
+                    with <span className="text-[#C75F2A]">EduMate</span>
+                </motion.h1>
+                <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+                    className="text-lg text-[#5A6D51] mb-8 font-medium"
+                >
+                    Discover interactive modules, collaborate in groups, and build good habits with Pomodoro.
+                </motion.p>
+                <motion.button
+                onClick={() => {
+                    const el = document.getElementById('features');
+                    if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }}
+                    initial={{ opacity: 0, scale: 0.3 }}
+                    animate={{ opacity: 1, scale: [1.2, 0.95, 1] }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 1 }}
+                    whileHover={{ scale: 1.1, boxShadow: '0 0 15px #C75F2A' }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-[#C75F2A] text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:bg-[#a74d20] transition-all duration-300"
+                    >
+                    Get Started
+                </motion.button>   
+            </div>
         </section>
     );
 }
