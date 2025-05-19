@@ -2,7 +2,7 @@ const taskRepo = require('./task.repository');
 
 // Membuat task baru dalam suatu grup (harus anggota grup)
 exports.createTask = async (req, res) => {
-    const { group_id, title, description, status, deadline, assigned_to } = req.body;
+    const { group_id, title, description, status, severity, assigned_to } = req.body;
 
     if (!group_id || !title) {
         return res.status(400).json({ success: false, message: "group_id and title are required", payload: null });
@@ -19,7 +19,7 @@ exports.createTask = async (req, res) => {
             title, 
             description, 
             status, 
-            deadline, 
+            severity, 
             assigned_to 
         });
         res.status(201).json({ success: true, message: "Task created", payload: task });
