@@ -6,7 +6,7 @@ import Image from 'next/image';
 export default function HeroSection() {
     return (
         <section
-            id="top"
+            id="home"
             className="relative min-h-screen flex flex-col md:flex-row items-center justify-between bg-gradient-to-br from-[#fdfaf5] to-[#f5f4f3] px-10 py-20 overflow-hidden"
         >
             {/* Gambar di kiri */}

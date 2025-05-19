@@ -18,3 +18,26 @@
     --color-time: #71C0BB;
     
 }
+
+@keyframes glowPulse {
+    0%, 100% {
+        text-shadow: 0 0 8px rgba(199, 95, 42, 0.5), 0 0 20px rgba(199, 95, 42, 0.3);
+    }
+    50% {
+        text-shadow: 0 0 15px rgba(199, 95, 42, 0.8), 0 0 30px rgba(199, 95, 42, 0.5);
+    }
+}
+
+.glow-cta {
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.25), 0 0 30px rgba(255, 255, 255, 0.15);
+    animation: pulseGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        text-shadow: 0 0 12px rgba(255, 255, 255, 0.25), 0 0 30px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.45), 0 0 40px rgba(255, 255, 255, 0.25);
+    }
+}
