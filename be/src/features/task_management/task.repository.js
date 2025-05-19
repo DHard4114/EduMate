@@ -1,11 +1,11 @@
 const { query } = require('../../database/pg.database');
 
 // Menyimpan task baru
-exports.createTask = async ({ group_id, title, description, status, deadline, assigned_to }) => {
+exports.createTask = async ({ group_id, title, description, status, severity, assigned_to }) => {
     const result = await query(
-        `INSERT INTO tasks (group_id, title, description, status, deadline, assigned_to)
+        `INSERT INTO tasks (group_id, title, description, status, severity, assigned_to)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [group_id, title, description, status || 'todo', deadline, assigned_to]
+        [group_id, title, description, status || 'todo', severity || 'low', assigned_to]
     );
     return result.rows[0];
 };

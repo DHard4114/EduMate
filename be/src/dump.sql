@@ -34,7 +34,7 @@ CREATE TABLE tasks (
     title TEXT NOT NULL,
     description TEXT,
     status TEXT CHECK (status IN ('todo', 'in_progress', 'done')) DEFAULT 'todo',
-    deadline TIMESTAMP,
+    severity TEXT CHECK (status IN ('low', 'medium', ;'high')) DEFAULT 'low',
     assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );

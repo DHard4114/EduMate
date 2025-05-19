@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Sidebar from '../../component/Sidebar';
 import TaskBoard from '../../component/task-management/TaskBoard';
+import GroupNavbar from '@/app/component/task-management/GroupNav';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { CiCirclePlus } from "react-icons/ci";
@@ -27,6 +28,7 @@ const TaskManagement = () => {
             <div >
                 <div className="pt-4 pr-4 flex justify-between items-center">
                     <h1 className="text-2xl font-semibold">  </h1>
+                    <GroupNavbar />
                     <button
                         onClick={handleAddGroup}
                         className="bg-green text-white rounded-full px-4 py-2 flex items-center hover:bg-fontgreen"
