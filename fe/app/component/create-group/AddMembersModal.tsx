@@ -1,5 +1,5 @@
 'use client'
-import { FiSearch, FiUserPlus, FiUser, FiX, FiCheck } from 'react-icons/fi';
+import { FiSearch, FiUserPlus, FiUser, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
