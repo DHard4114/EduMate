@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../auth-context'
 import Head from 'next/head'
-import axios from 'axios'
 import api from '@/app/lib/api'
 
 export default function AccountPage() {
@@ -21,7 +20,7 @@ export default function AccountPage() {
 
     // Initialize form data with user data
     useEffect(() => {
-        if (user === undefined) {
+        if (user === undefined || user === null) {
             return
         }
 
