@@ -7,9 +7,8 @@ EduMate is a modern learning platform designed to support students in learning e
 ## 🌟 Features
 
 - 📚 Interactive course modules (text, video, quizzes)
-- 👥 Group project to-do list with task tracking and deadlines
+- 👥 Group project to-do list with task tracking and group diiscussion feature
 - ⏱️ Pomodoro timer with learning duration tracking
-- 🏅 Achievement system (Highest Score, Most Diligent, Course Finisher)
 
 ---
 
