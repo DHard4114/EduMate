@@ -1,12 +1,20 @@
 'use client'
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect  } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { AnimatePresence } from 'framer-motion';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
+
+  const [isLogin, setIsLogin] = useState(mode !== 'signup'); // default login
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLogin(mode !== 'signup'); // kalau mode=signup, set isLogin ke false
+  }, [mode])
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
