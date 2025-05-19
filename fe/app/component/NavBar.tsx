@@ -2,11 +2,11 @@
 
 export default function NavBar() {
     return (
-        <header className="w-full bg-basegreen shadow-md text-white fixed top-0 z-50">
+        <header className="w-full bg-fontgreen shadow-md text-white fixed top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             
             {/* Logo / Brand */}
-            <a href="#top" className="text-2xl font-extrabold tracking-wide text-white hover:text-fontgreen transition-colors duration-300">
+            <a href="#top" className="text-2xl font-extrabold tracking-wide text-white hover:text-basegreen transition-colors duration-300">
             EduMate
             </a>
 
@@ -14,13 +14,13 @@ export default function NavBar() {
             <nav>
             <ul className="flex space-x-6 text-medium font-xl">
                 <li>
-                <a href="#top" className="hover:text-fontgreen transition-colors duration-300">Home</a>
+                <a href="#top" className="hover:text-basegreen transition-colors duration-300">Home</a>
                 </li>
                 <li>
-                <a href="#features" className="hover:text-fontgreen transition-colors duration-300">Features</a>
+                <a href="#features" className="hover:text-basegreen transition-colors duration-300">Features</a>
                 </li>
                 <li>
-                <a href="#cta" className="hover:text-fontgreen transition-colors duration-300">Join</a>
+                <a href="#cta" className="hover:text-basegreen transition-colors duration-300">Join</a>
                 </li>
             </ul>
             </nav>
