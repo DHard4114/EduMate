@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function CTA() {
   return (
     <section
-      id="cta"
+      id="join"
       className="min-h-screen w-full flex items-center justify-center bg-basegreen px-6 py-24 text-white text-center relative overflow-hidden"
     >
       <motion.div
