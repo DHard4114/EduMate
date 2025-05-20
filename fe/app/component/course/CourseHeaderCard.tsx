@@ -1,5 +1,3 @@
-import { FaListUl } from "react-icons/fa";
-
 export default function CourseHeaderCard() {
     return (
         <div className="bg-darkgreen text-white p-4 rounded-xl shadow-lg flex items-center justify-between mb-8">

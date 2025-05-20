@@ -58,16 +58,6 @@ export default function NavBar() {
             >
                 Register
             </a>
-
-            {/* Dark Mode Toggle */}
-            <button
-                onClick={toggleDark}
-                className="ml-2 text-white hover:text-basegreen transition duration-300 text-xl"
-                title="Toggle dark mode"
-            >
-                {darkMode ? '☀️' : '🌙'}
-                
-            </button>
             </div>
         </div>
 

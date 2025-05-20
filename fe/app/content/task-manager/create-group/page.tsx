@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { FiSearch, FiUserPlus, FiUser, FiX, FiCheck } from 'react-icons/fi';
+import { FiUserPlus, FiX } from 'react-icons/fi';
 import { FaUserFriends } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { User, Group } from '@/app/component/create-group/types';
