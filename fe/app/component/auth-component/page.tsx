@@ -11,7 +11,6 @@ import {
     AuthButtonProps,
     AuthToggleProps,
     SkillLevelsProps,
-    Level
 } from '../../auth/AuthType';
 
 export function AuthIllustration({ title, description, imageSrc }: AuthIllustrationProps) {

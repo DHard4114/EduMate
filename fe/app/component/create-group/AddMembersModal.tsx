@@ -29,8 +29,8 @@ export default function AddMembersModal({
         setError('');
         try {
             const response = await axios.get('http://localhost:5001/user/get');
-            if (response.data && Array.isArray(response.data)) {
-            const usersWithSelection: User[] = response.data.map((user: any) => ({
+            if (response.data && Array.isArray(response.data.data)) {
+            const usersWithSelection: User[] = response.data.data.map((user: any) => ({
                 id: user.id.toString(),
                 name: user.name || 'No Name',
                 email: user.email || 'No Email',
