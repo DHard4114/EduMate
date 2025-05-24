@@ -1,176 +1,168 @@
 'use client';
+
+import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { useState } from "react";
-import { FaHome, FaCoffee, FaBookOpen, FaStar, FaCalculator, FaCube, FaPercent } from "react-icons/fa";
-import CourseHeaderCard from "./CourseHeaderCard";
+import { useAuth } from '../auth-context';
+import api from '@/app/lib/api';
+import { Course, LevelProgress } from './types';
+import CourseHeaderCard from './CourseHeaderCard';
+import LessonNode from './LessonNode';
 
-// --------------------- 1. DATA LEVEL DAN LESSON ---------------------
-const courseData = {
-    Beginner: [
-        { title: "Angka", icon: <FaBookOpen />, current: true, lessonsCount: "2/2", path: "/beginner/angka" },
-        { title: "Penjumlahan", icon: <FaCalculator />, lessonsCount: "0/2", path: "/beginner/penjumlahan" },
-        { title: "Pengurangan", icon: <FaCalculator />, lessonsCount: "0/3", path: "/beginner/pengurangan" },
-        { title: "Perkalian", icon: <FaBookOpen />, lessonsCount: "0/4", path: "/beginner/perkalian" },
-        { title: "Pembagian", icon: <FaCoffee />, lessonsCount: "0/3", path: "/beginner/pembagian" },
-        { title: "Test Out", icon: <FaStar />, lessonsCount: "0/2", path: "/beginner/test" },
-        { title: "Review", icon: <FaHome />, lessonsCount: "0/1", path: "/beginner/review" },
-    ],
-    Intermediate: [
-        { title: "Aljabar", icon: <FaCalculator />, current: true, lessonsCount: "1/2", path: "/intermediate/aljabar" },
-        { title: "Pecahan", icon: <FaBookOpen />, lessonsCount: "0/2", path: "/intermediate/pecahan" },
-        { title: "Geometri Dasar", icon: <FaCube />, lessonsCount: "0/3", path: "/intermediate/geometri" },
-        { title: "Bangun Ruang", icon: <FaCube />, lessonsCount: "0/2", path: "/intermediate/ruang" },
-        { title: "Sudut", icon: <FaBookOpen />, lessonsCount: "0/2", path: "/intermediate/sudut" },
-        { title: "Skala", icon: <FaCoffee />, lessonsCount: "0/3", path: "/intermediate/skala" },
-        { title: "Test Out", icon: <FaStar />, lessonsCount: "0/1", path: "/intermediate/test" },
-    ],
-    Advanced: [
-        { title: "Bilangan Kompleks", icon: <FaCalculator />, current: true, lessonsCount: "0/2", path: "/advance/kompleks" },
-        { title: "Desimal", icon: <FaBookOpen />, lessonsCount: "0/2", path: "/advance/desimal" },
-        { title: "Persen", icon: <FaPercent />, lessonsCount: "0/2", path: "/advance/persen" },
-        { title: "Volume", icon: <FaCube />, lessonsCount: "0/3", path: "/advance/volume" },
-        { title: "Bangun Kompleks", icon: <FaCube />, lessonsCount: "0/2", path: "/advance/bangun" },
-        { title: "Test Out", icon: <FaStar />, lessonsCount: "0/2", path: "/advance/test" },
-        { title: "Review", icon: <FaHome />, lessonsCount: "0/1", path: "/advance/review" },
-    ],
-    };
-
-    function LessonNode({ title, icon, completed, locked, current, lessonsCount, route }: any) {
+export default function CourseBoard() {
+    const { user } = useAuth();
     const router = useRouter();
+    const [level, setLevel] = useState<string | null>(null);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [progress, setProgress] = useState<LevelProgress | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+;
 
-    const handleClick = () => {
-        if (!locked && route) {
-        router.push(route);
+    useEffect(() => {
+        if (user?.level) {
+            setLevel(user.level);
         }
-    };
+    }, [user]);;
 
-    return (
-        <div 
-        className="relative flex flex-col items-center text-center w-24 cursor-pointer" 
-        onClick={handleClick}
-        >
-        {current && (
-            <div className="absolute -top-2 -right-2 bg-pink-500 text-white rounded-full p-1 text-xs shadow">
-            <FaStar />
-            </div>
-        )}
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!level || !user?.id) return;
 
-        <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl shadow-xl border-6
-            ${completed ? "bg-green border-green-200" : current ? "bg-green border-basegreen" : "bg-gray-300 border-gray-200"}
-            ${locked ? "opacity-90 grayscale" : ""}`}
-        >
-            {icon}
-        </div>
+            try {
+                setLoading(true);
+                setError(null);
 
-        <p className="text-sm font-semibold mt-2">{title}</p>
-        </div>
-    );
-    }
+                const [coursesResponse, progressResponse] = await Promise.all([
+                    api.get(`/course/level/${level}`),
+                    api.get(`/course/level/${level}/progress`, {
+                        params: { userId: user.id }
+                    })
+                ]);
 
-    // --------------------- 3. MAIN COMPONENT ---------------------
-    export default function LearningPath() {
-    const [level, setLevel] = useState<"Beginner" | "Intermediate" | "Advanced">("Beginner");
+                if (coursesResponse.data.success) {
+                    setCourses(coursesResponse.data.payload);
+                }
 
-    const rawLessons = courseData[level];
+                if (progressResponse?.data.success) {
+                    setProgress(progressResponse.data.payload);
+                }
+            } catch (error) {
+                console.error('Error fetching courses:', error);
+                setError('Failed to load courses');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const lessons = rawLessons.map((lesson, idx) => {
-        const [done, total] = lesson.lessonsCount.split('/').map(Number);
-        const completed = done >= total;
-        const prev = rawLessons[idx - 1];
-        const isFirst = idx === 0;
+        fetchData();
+    }, [level, user?.id]);
 
-        const unlocked = isFirst || (prev && prev.lessonsCount.split('/')[0] === prev.lessonsCount.split('/')[1]);
-        const locked = !unlocked && !lesson.current;
+    
 
-        return { ...lesson, completed, locked, route: lesson.path };
-    });
-
-    const pathDirection = "right";
-    const pathBias = 0.7;
-
-    const lessonPositions = lessons.map((_, index) => {
-        const y = index * 180 + 40;
-        const baseX = 50;
-        const offset = (index % 2 === 0 ? 1 : -1) * 30 * (pathDirection === "right" ? 1 : -1);
-        const x = baseX + (pathBias * offset);
-        return { x, y };
-    });
+    const lessonPositions = courses.map((_, index) => ({
+        x: 50 + (index % 2 === 0 ? 1 : -1) * 30 * 0.7,
+        y: index * 180 + 40
+    }));
 
     const generatePathData = () => {
+        if (lessonPositions.length === 0) return '';
+        
         let pathData = `M${lessonPositions[0].x},${lessonPositions[0].y}`;
         for (let i = 1; i < lessonPositions.length; i++) {
-        const prev = lessonPositions[i - 1];
-        const curr = lessonPositions[i];
-        const controlX1 = prev.x + (pathDirection === "right" ? 15 : -15);
-        const controlY1 = prev.y + (curr.y - prev.y) / 2;
-        const controlX2 = curr.x + (pathDirection === "right" ? -15 : 15);
-        const controlY2 = prev.y + (curr.y - prev.y) / 2;
-        pathData += ` C${controlX1},${controlY1} ${controlX2},${controlY2} ${curr.x},${curr.y}`;
+            const prev = lessonPositions[i - 1];
+            const curr = lessonPositions[i];
+            pathData += ` C${prev.x + 15},${prev.y + (curr.y - prev.y) / 2} ${curr.x - 15},${prev.y + (curr.y - prev.y) / 2} ${curr.x},${curr.y}`;
         }
         return pathData;
     };
 
+    const handleNodeClick = (courseId: string, isLocked: boolean) => {
+    if (!isLocked) {
+        router.push(`/content/course/materials?level=${level}&courseId=${courseId}`);
+    }
+};
+
     return (
         <div className="min-h-screen bg-white">
-        <div className="sticky top-0 z-50 w-full px-4 pt-4 bg-white">
-            <CourseHeaderCard />
-            {/* Tombol Level */}
-            <div className="flex gap-4 justify-center mt-4">
-            {["Beginner", "Intermediate", "Advanced"].map((lvl) => (
-                <button
-                key={lvl}
-                onClick={() => setLevel(lvl as any)}
-                className={`px-4 py-2 rounded font-semibold border 
-                ${level === lvl ? "bg-green text-white" : "bg-gray-100 text-gray-800"}`}
-                >
-                {lvl}
-                </button>
-            ))}
-            </div>
-        </div>
-
-        {/* Konten Path */}
-        <div
-            className="relative py-10 px-4 flex justify-center"
-            style={{
-            height: `${lessons.length * 180 + 200}px`,
-            width: "600px",
-            margin: "0 auto",
-            }}
-        >
-            {/* SVG Path */}
-            <svg
-            className="absolute top-20 left-0 w-full h-full"
-            viewBox={`0 0 100 ${lessons.length * 180 + 100}`}
-            preserveAspectRatio="none"
-            >
-            <path
-                d={generatePathData()}
-                fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="2"
-                strokeDasharray="5,5"
-            />
-            </svg>
-
-            {/* Lesson Nodes */}
-            <div className="relative z-10 w-full h-full mt-32">
-            {lessons.map((lesson, index) => (
-                <div
-                key={index}
-                className="absolute"
-                style={{
-                    left: `${lessonPositions[index].x}%`,
-                    top: `${lessonPositions[index].y}px`,
-                    transform: "translate(-50%, -50%)",
-                }}
-                >
-                <LessonNode {...lesson} />
+            {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                    <span className="block sm:inline">{error}</span>
                 </div>
-            ))}
+            )}
+            <div className="sticky top-0 z-50 w-full px-4 pt-4 bg-white">
+                <CourseHeaderCard level={level||'beginner'} progress={progress} />
+                
+                <div className="flex gap-4 justify-center mt-4 mb-6">
+                    {["beginner", "intermediate", "advanced"].map((lvl) => (
+                        <button
+                            key={lvl}
+                            onClick={() => setLevel(lvl)}
+                            className={`
+                                px-6 py-2 rounded-lg font-semibold transition-colors duration-200
+                                ${level === lvl
+                                    ? "bg-green text-white shadow-md"
+                                    : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                }
+                            `}
+                        >
+                            {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
+                        </button>
+                    ))}
+                </div>
             </div>
-        </div>
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green"></div>
+                </div>
+            ) : (
+                <div className="relative py-10 px-4 flex justify-center"
+                    style={{
+                        height: `${courses.length * 180 + 200}px`,
+                        width: "600px",
+                        margin: "0 auto",
+                    }}
+                >
+                    <svg
+                        className="absolute top-20 left-0 w-full h-full"
+                        viewBox={`0 0 100 ${courses.length * 180 + 100}`}
+                        preserveAspectRatio="none"
+                    >
+                        <path
+                            d={generatePathData()}
+                            fill="none"
+                            stroke="#E5E7EB"
+                            strokeWidth="2"
+                            strokeDasharray="5,5"
+                        />
+                    </svg>
+
+                    <div className="relative z-10 w-full h-full mt-32">
+                        {courses.map((course, index) => {
+                            const isLocked = index > 0 && !progress?.completed_course_ids?.includes(courses[index - 1].id);
+                            
+                            return (
+                                <div
+                                    key={course.id}
+                                    className="absolute"
+                                    style={{
+                                        left: `${lessonPositions[index].x}%`,
+                                        top: `${lessonPositions[index].y}px`,
+                                        transform: "translate(-50%, -50%)",
+                                    }}
+                                >
+                                    <LessonNode
+                                        title={course.title}
+                                        completed={progress?.completed_course_ids?.includes(course.id)}
+                                        locked={isLocked}
+                                        current={index === progress?.completed}
+                                        onClick={() => handleNodeClick(course.id, isLocked)}
+                                    />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -1,85 +1,246 @@
-import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { FiPlay, FiPause, FiRefreshCw, FiChevronDown, FiChevronUp, FiChevronRight, FiClock, FiX, FiCheckCircle } from 'react-icons/fi';
+'use client'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { FiPlay, FiPause, FiRefreshCw, FiChevronDown, FiChevronUp, FiClock, FiX, FiCheckCircle, FiChevronRight } from 'react-icons/fi';
+import { ModeType, Modes, Session, PomodoroTimerProps } from './types';
+import api from '@/app/lib/api';
 
-const PomodoroTimer = ({ userId }) => {
-    const [isActive, setIsActive] = useState(false);
-    const [timer, setTimer] = useState(25 * 60);
-    const [mode, setMode] = useState('pomodoro');
-    const [completedPomodoros, setCompletedPomodoros] = useState(0);
-    const [showHistory, setShowHistory] = useState(false);
-    const [history, setHistory] = useState([]);
-    const [summary, setSummary] = useState({ total_minutes: 0 });
-    const [isMinimized, setIsMinimized] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [notification, setNotification] = useState(null);
-
-    const timerRef = useRef(null);
-    const audioRef = useRef(null);
-    const containerRef = useRef(null);
-
-    const modes = {
-      pomodoro: { 
-        name: 'Focus', 
-        duration: 25 * 60, 
-        color: 'bg-green', 
+const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const [timer, setTimer] = useState<number>(25 * 60);
+  const [mode, setMode] = useState<ModeType>('pomodoro');
+  const [completedPomodoros, setCompletedPomodoros] = useState<number>(0);
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [history, setHistory] = useState<Session[]>([]);
+  const [summary, setSummary] = useState<{ total_minutes: number }>({ total_minutes: 0 });
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  
+  const modes: Modes = useMemo(() => ({
+      pomodoro: {
+        name: 'Focus',
+        duration: 25 * 60,
+        color: 'bg-green',
         text: 'text-green',
         ring: 'ring-green',
         bg: 'bg-basegreen'
       },
-      short_break: { 
-        name: 'Short Break', 
-        duration: 5 * 60, 
-        color: 'bg-bluetime', 
+      short_break: {
+        name: 'Short Break',
+        duration: 5 * 60,
+        color: 'bg-bluetime',
         text: 'text-bluetime',
         ring: 'ring-bluetime',
         bg: 'bg-blue-200'
       },
-      long_break: { 
-        name: 'Long Break', 
-        duration: 15 * 60, 
-        color: 'bg-time', 
+      long_break: {
+        name: 'Long Break',
+        duration: 15 * 60,
+        color: 'bg-time',
         text: 'text-time',
         ring: 'ring-time',
         bg: 'bg-teal-100'
       },
-    };
+    }), []);
+    
+    const persistTimer = useCallback(() => {
+      localStorage.setItem('pomodoroState', JSON.stringify({
+        timer,
+        mode,
+        isActive,
+        sessionStartTime,
+        completedPomodoros
+      }));
+    }, [timer, mode, isActive, sessionStartTime, completedPomodoros]);
+    
+    const updateCompletedPomodoros = useCallback((count: number) => {
+      const today = new Date().toDateString();
+      localStorage.setItem('lastPomodoroDate', today);
+      localStorage.setItem('completedPomodoros', count.toString());
+      setCompletedPomodoros(count);
+    }, []);
 
-    const showTempNotification = (message) => {
+    const showTempNotification = useCallback((message: string): void => {
       setNotification(message);
       setTimeout(() => setNotification(null), 3000);
-    };
+    }, []);
 
-    const formatTime = (time) => {
+    const formatTime = (time: number): string => {
       const minutes = Math.floor(time / 60);
       const seconds = time % 60;
       return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
 
-    const switchMode = (newMode, resetCompleted = false) => {
+  const fetchHistory = useCallback(async () => {
+      setIsHistoryLoading(true);
+      try {
+        const response = await api.get('/pomodoro/history');
+        setHistory(response.data.payload);
+        
+        // Update completed pomodoros count from today's history
+        const todayPomodoros = response.data.payload.filter((session: Session) => {
+        const sessionDate = new Date(session.started_at);
+        const today = new Date();
+        return sessionDate.toDateString() === today.toDateString() && 
+              session.type === 'pomodoro';
+      });
+        updateCompletedPomodoros(todayPomodoros.length);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        showTempNotification('Failed to load history');
+      } finally {
+        setIsHistoryLoading(false);
+      }
+    }, [showTempNotification, updateCompletedPomodoros]);
+
+
+
+
+  const fetchSummary = useCallback(async () => {
+    try {
+      const response = await api.get('/pomodoro/summary');
+      setSummary(response.data.payload);
+    } catch (error) {
+      console.error('Error fetching summary:', error);
+      showTempNotification('Failed to load summary');
+    }
+  }, [showTempNotification]);
+
+  
+  
+  
+  const switchMode = useCallback((newMode: ModeType, resetCompleted = false): void => {
       setIsActive(false);
-      clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       setMode(newMode);
       setTimer(modes[newMode].duration);
       setProgress(0);
+
       if (resetCompleted) {
-        setCompletedPomodoros(0);
+        updateCompletedPomodoros(0);
+      localStorage.setItem('completedPomodoros', '0');
       }
+
       showTempNotification(`Switched to ${modes[newMode].name} mode`);
-    };
+    }, [modes, showTempNotification, updateCompletedPomodoros]);
+
+
+    const handleHistoryToggle = useCallback(() => {
+      const newShowHistory = !showHistory;
+      setShowHistory(newShowHistory);
+      if (newShowHistory) {
+        fetchHistory();
+      }
+    }, [showHistory, fetchHistory]);
+
+
+    const handleTimerComplete = useCallback(async () => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+
+      try {
+        const actualDuration = modes[mode].duration / 60;
+        // Save session to database
+        await api.post('/pomodoro/done', {
+          user_id: userId,
+          type: mode,
+          duration: actualDuration,
+        });
+
+        if (mode === 'pomodoro') {
+          const newCount = completedPomodoros + 1;
+          updateCompletedPomodoros(newCount);
+          await fetchHistory();
+
+          showTempNotification(`Great job! ${newCount} focus sessions completed`);
+          
+          const currentCount = completedPomodoros + 1;
+        if (currentCount % 4 === 0) {
+          switchMode('long_break');
+          }
+        else {
+            switchMode('short_break');
+          }
+        } else {
+          // After break, switch back to pomodoro mode
+          if (mode === 'long_break') {
+            updateCompletedPomodoros(0); // Reset counter after long break
+            switchMode('pomodoro', true);
+          } else {
+            switchMode('pomodoro', false);
+          }
+        }
+        
+        // Refresh data after saving
+        await Promise.all([fetchHistory(), fetchSummary()]);
+      } catch (error) {
+        console.error('Error:', error);
+        showTempNotification('Failed to save session');
+      }
+    }, [
+      mode,
+      modes,
+      completedPomodoros,
+      userId,
+      updateCompletedPomodoros,
+      switchMode,
+      showTempNotification,
+      fetchHistory,
+      fetchSummary
+    ]);
+
+
+
+    const checkDailyReset = useCallback(() => {
+      const lastDate = localStorage.getItem('lastPomodoroDate');
+      const today = new Date().toDateString();
+      
+      if (lastDate !== today) {
+        updateCompletedPomodoros(0);
+        fetchHistory(); // Refresh history to get today's sessions
+      }
+    }, [updateCompletedPomodoros, fetchHistory]);
+
+    // Add this useEffect to check for daily reset
+    useEffect(() => {
+      checkDailyReset();
+      
+      // Check every minute for date change
+      const interval = setInterval(checkDailyReset, 60000);
+      return () => clearInterval(interval);
+    }, [checkDailyReset]);
 
     const toggleTimer = () => {
       if (!isActive) {
+        const now = Date.now();
+        setSessionStartTime(now);
+        
+
         timerRef.current = setInterval(() => {
           setTimer((prevTimer) => {
-            if (prevTimer <= 1) {
-              clearInterval(timerRef.current);
-              setIsActive(false);
-              handleTimerComplete();
-              return 0;
-            }
-            return prevTimer - 1;
-          });
+
+            const newTimer = prevTimer - 1;
+            persistTimer();
+
+            if (newTimer <= 0) {
+                clearInterval(timerRef.current!);
+                setIsActive(false);
+                setSessionStartTime(null);
+                handleTimerComplete();
+                return 0;
+              }
+              return newTimer;
+            });
           
           // Update progress
           const totalDuration = modes[mode].duration;
@@ -88,103 +249,27 @@ const PomodoroTimer = ({ userId }) => {
           setProgress(newProgress);
         }, 1000);
       } else {
-        clearInterval(timerRef.current);
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          persistTimer();
+        }
       }
       setIsActive(!isActive);
     };
 
-    const handleTimerComplete = async () => {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0;
-        audioRef.current.play();
-      }
-
-      try {
-        await axios.post(
-          'http://localhost:5001/pomodoro/done',
-          {
-            type: mode,
-            duration: modes[mode].duration / 60,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem('token')}`,
-            },
-          }
-        );
-
-        // Automatic mode switching logic
-        if (mode === 'pomodoro') {
-          const newCount = completedPomodoros + 1;
-          setCompletedPomodoros(newCount);
-          showTempNotification(`Great job! ${newCount} focus sessions completed`);
-          
-          if (newCount % 4 === 0) {
-            switchMode('long_break');
-          } else {
-            switchMode('short_break');
-          }
-        } else if (mode === 'short_break' || mode === 'long_break') {
-          if (mode === 'long_break') {
-            // Reset cycle after long break
-            switchMode('pomodoro', true);
-          } else {
-            // After short break, go to next pomodoro
-            switchMode('pomodoro');
-          }
-        }
-
-        fetchHistory();
-        fetchSummary();
-      } catch (error) {
-        console.error('Error saving session:', error);
-        showTempNotification('Failed to save session');
-      }
-    };
-
     const resetTimer = () => {
       setIsActive(false);
-      clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       setTimer(modes[mode].duration);
       setProgress(0);
     };
 
-    const fetchHistory = async () => {
+    const deleteSession = async (id: number) => {
       try {
-        const response = await axios.get('http://localhost:5001/pomodoro/history', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        setHistory(response.data.payload);
-      } catch (error) {
-        console.error('Error fetching history:', error);
-        showTempNotification('Failed to load history');
-      }
-    };
-
-    const fetchSummary = async () => {
-      try {
-        const response = await axios.get('http://localhost:5001/pomodoro/summary', {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        setSummary(response.data.payload);
-      } catch (error) {
-        console.error('Error fetching summary:', error);
-      }
-    };
-
-    const deleteSession = async (id) => {
-      try {
-        await axios.delete(`http://localhost:5001/pomodoro/${id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-        fetchHistory();
-        fetchSummary();
+        await api.delete(`/pomodoro/${id}`);
+        await Promise.all([fetchHistory(), fetchSummary()]);
         showTempNotification('Session deleted');
       } catch (error) {
         console.error('Error deleting session:', error);
@@ -193,29 +278,83 @@ const PomodoroTimer = ({ userId }) => {
     };
 
     useEffect(() => {
-      if (userId) {
-        fetchHistory();
-        fetchSummary();
+      const savedState = localStorage.getItem('pomodoroState');
+      if (savedState) {
+        const state = JSON.parse(savedState);
+        
+        // If there was an active session
+        if (state.isActive && state.sessionStartTime) {
+          // Calculate elapsed time
+          const elapsed = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+          const remainingTime = Math.max(0, state.timer - elapsed);
+          
+          // Restore timer with adjusted time
+          setTimer(remainingTime);
+          setMode(state.mode);
+          setIsActive(false); // Don't auto-resume
+        } else {
+          // Just restore saved state
+          setTimer(state.timer);
+          setMode(state.mode);
+          setCompletedPomodoros(state.completedPomodoros);
+        }
       }
-    }, [userId]);
-
-    useEffect(() => {
-      return () => clearInterval(timerRef.current);
     }, []);
 
+
+    useEffect(() => {
+      const lastDate = localStorage.getItem('lastPomodoroDate');
+      const today = new Date().toDateString();
+      
+      if (lastDate !== today) {
+        // Reset if it's a new day
+        updateCompletedPomodoros(0);
+      } else {
+        // Restore today's count
+        const saved = localStorage.getItem('completedPomodoros');
+        if (saved) {
+          setCompletedPomodoros(parseInt(saved, 10));
+        }
+      }
+    }, [updateCompletedPomodoros]);
+
+  useEffect(() => {
+      if (userId) {
+        // Initial fetch
+        fetchSummary();
+        fetchHistory();
+
+        // Set up auto-refresh interval (every 1 minute)
+        const refreshInterval = setInterval(() => {
+          fetchSummary();
+          fetchHistory();
+        }, 60000); // 60000 ms = 1 minute
+
+        return () => {
+          clearInterval(refreshInterval);
+          // Clear timer if component unmounts while active
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+        };
+      }
+    }, [userId, fetchSummary, fetchHistory]);
+
     return (
-      <div 
-        ref={containerRef}
-        className={`fixed right-0 top-0 h-screen w-80 bg-white shadow-xl border-l border-gray-100 z-50 transition-all duration-300 ease-in-out ${
-          isMinimized ? 'translate-x-72' : 'translate-x-0'
-        }`}
-      >
+        <div ref={containerRef} className={`fixed right-0 top-0 h-screen w-80 bg-white shadow-xl border-l border-gray-100 z-50 transition-all duration-300 ease-in-out ${isMinimized ? 'translate-x-72' : 'translate-x-0'}`}>
+        {/* Add minimize button */}
+        <button
+          onClick={() => setIsMinimized(prev => !prev)}
+          className="absolute -left-8 top-1/2 -translate-y-1/2 bg-white p-2 rounded-l-lg shadow-md border border-r-0 border-gray-100"
+        >
+          <FiChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isMinimized ? 'rotate-180' : ''}`} />
+        </button>
 
         {/* Main content */}
         <div className="p-6 flex flex-col gap-6 h-full overflow-y-auto">
           {/* Mode selector */}
           <div className="flex justify-between gap-2">
-            {Object.keys(modes).map((key) => (
+            {(Object.keys(modes) as ModeType[]).map((key) => (
               <button
                 key={key}
                 onClick={() => switchMode(key)}
@@ -301,7 +440,7 @@ const PomodoroTimer = ({ userId }) => {
           {/* Stats */}
           <div className="bg-gray-50 rounded-xl p-4">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-500">Today's Focus</span>
+              <span className="text-sm font-medium text-gray-500">Today&apos;s Focus</span>
               <span className="text-sm font-medium text-gray-700">
                 {completedPomodoros} / 4 sessions
               </span>
@@ -323,7 +462,7 @@ const PomodoroTimer = ({ userId }) => {
           {/* History section */}
           <div className="mt-auto">
             <button 
-              onClick={() => setShowHistory(!showHistory)}
+              onClick={handleHistoryToggle}
               className="flex items-center justify-between w-full py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <div className="flex items-center gap-2">
@@ -335,27 +474,28 @@ const PomodoroTimer = ({ userId }) => {
 
             {showHistory && (
               <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
-                {history.length === 0 ? (
+                {isHistoryLoading ? (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Loading history...
+                  </div>
+                ) : history.length === 0 ? (
                   <div className="text-center py-4 text-gray-500 text-sm">
                     No sessions recorded yet
                   </div>
                 ) : (
                   history.map((session) => (
-                    <div 
-                      key={session.id} 
-                      className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm"
-                    >
+                    <div key={session.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg shadow-sm">
                       <div>
                         <div className="font-medium text-gray-700 capitalize">
                           {session.type.replace('_', ' ')}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {new Date(session.created_at).toLocaleString()}
+                          {new Date(session.started_at).toLocaleString()}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-sm font-medium ${modes[session.type]?.text || 'text-gray-600'}`}>
-                          {session.duration} min
+                          {session.duration_minutes} min
                         </span>
                         <button 
                           onClick={() => deleteSession(session.id)}
@@ -365,8 +505,7 @@ const PomodoroTimer = ({ userId }) => {
                         </button>
                       </div>
                     </div>
-                  ))
-                )}
+                  )))}
               </div>
             )}
           </div>
@@ -380,9 +519,9 @@ const PomodoroTimer = ({ userId }) => {
           </div>
         )}
 
-        <audio 
-          ref={audioRef} 
-          src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.mp3" 
+        <audio
+          ref={audioRef}
+          src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.mp3"
         />
       </div>
     );

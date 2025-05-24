@@ -15,7 +15,7 @@ import {
 
 export function AuthIllustration({ title, description, imageSrc }: AuthIllustrationProps) {
     return (
-        <motion.div 
+        <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -24,8 +24,8 @@ export function AuthIllustration({ title, description, imageSrc }: AuthIllustrat
         <h2 className="text-4xl font-bold mb-4">{title}</h2>
         <p className="text-green-100 mb-8">{description}</p>
         <div className="relative h-64">
-            <Image 
-            src={imageSrc} 
+            <Image
+            src={imageSrc}
             alt="Auth Illustration"
             fill
             className="object-contain"

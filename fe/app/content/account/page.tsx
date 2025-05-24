@@ -1,13 +1,14 @@
 'use client'
+
 import { useState } from 'react';
 import Sidebar from '../../component/Sidebar';
 import AccountPage from '@/app/component/account/account';
-import { useRouter } from 'next/navigation';
+//import { useRouter } from 'next/navigation';
 
 const Course = () => {
     const [isNavOpen, setIsNavOpen] = useState(true);
 
-    const router = useRouter();
+    //const router = useRouter();
     return (
         <>
         <div className="min-h-screen bg-gray-50 text-gray-800 flex">

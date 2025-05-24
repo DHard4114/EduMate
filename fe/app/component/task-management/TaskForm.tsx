@@ -1,4 +1,5 @@
 'use client'
+
 import { useState } from 'react';
 import { Task } from './Types';
 
@@ -10,17 +11,17 @@ type TaskFormProps = {
     const TaskForm = ({ onSave, onCancel }: TaskFormProps) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [assignedTo, setAssignedTo] = useState('');
+    const [assigned_to, setAssigned_to] = useState('')
     const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave({
-        title,
-        description,
-        assignedTo,
-        severity,
-        status: 'todo',
+            title,
+            description,
+            assigned_to,
+            severity,
+            status: 'todo',
         });
     };
 
@@ -53,8 +54,8 @@ type TaskFormProps = {
             <label className="block text-sm font-medium mb-1">Assigned To</label>
             <input
                 type="text"
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
+                value={assigned_to}
+                onChange={(e) => setAssigned_to(e.target.value)}
                 className="w-full p-2 border rounded"
             />
             </div>

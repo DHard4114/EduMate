@@ -3,19 +3,17 @@ import { FiSearch, FiUserPlus, FiUser, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import { User } from './types';
+import { User, UserResponse, AddMembersModalProps} from './types';
 
-type AddMembersModalProps = {
-    isOpen: boolean;
-    onClose: () => void;
-    onAddSelected: (selectedUsers: User[]) => void;
-};
+
 
 export default function AddMembersModal({
     isOpen,
     onClose,
-    onAddSelected,
-    }: AddMembersModalProps) {
+    onSearchChange,
+    onToggleUser,
+    onAddSelected
+}: AddMembersModalProps) {
     const [users, setUsers] = useState<User[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -23,56 +21,62 @@ export default function AddMembersModal({
 
     useEffect(() => {
         const fetchUsers = async () => {
-        if (!isOpen) return;
-        
-        setIsLoading(true);
-        setError('');
-        try {
-            const response = await axios.get('http://localhost:5001/user/get');
-            if (response.data && Array.isArray(response.data.data)) {
-            const usersWithSelection: User[] = response.data.data.map((user: any) => ({
-                id: user.id.toString(),
-                name: user.name || 'No Name',
-                email: user.email || 'No Email',
-                username: user.username || '',
-                isSelected: false
-            }));
-            setUsers(usersWithSelection);
-            } else {
-            throw new Error('Invalid response format');
+            if (!isOpen) return;
+            
+            setIsLoading(true);
+            setError('');
+            try {
+                const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}user/get`);
+                if (response.data && Array.isArray(response.data.data)) {
+                    const usersWithSelection: User[] = response.data.data.map((user: UserResponse) => ({
+                        id: user.id.toString(),
+                        name: user.name || 'No Name',
+                        email: user.email || 'No Email',
+                        username: user.username || '',
+                        isSelected: false
+                    }));
+                    setUsers(usersWithSelection);
+                } else {
+                    throw new Error('Invalid response format');
+                }
+            } catch (error) {
+                console.error('Failed to fetch users:', error);
+                setError('Failed to load users. Please try again.');
+                setUsers([]);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error('Failed to fetch users:', error);
-            setError('Failed to load users. Please try again.');
-            setUsers([]);
-        } finally {
-            setIsLoading(false);
-        }
         };
 
         fetchUsers();
     }, [isOpen]);
 
     const toggleUserSelection = (userId: string) => {
-        setUsers(users.map(user => 
-        user.id === userId ? { ...user, isSelected: !user.isSelected } : user
+        setUsers(prevUsers => prevUsers.map(user => 
+            user.id === userId ? { ...user, isSelected: !user.isSelected } : user
         ));
+        onToggleUser(userId);
     };
 
     const handleAddSelected = () => {
         const selectedUsers = users.filter(user => user.isSelected);
         onAddSelected(selectedUsers);
-        setUsers(users.map(user => ({ ...user, isSelected: false })));
+        setUsers(prevUsers => prevUsers.map(user => ({ ...user, isSelected: false })));
         setSearchQuery('');
         onClose();
     };
 
-    const filteredUsers = users.filter(
-        (user) =>
+    const filteredUsers = users.filter(user =>
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.username.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+        onSearchChange(value);
+    };
 
     if (!isOpen) return null;
 
@@ -114,7 +118,7 @@ export default function AddMembersModal({
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-fontgreen focus:border-fontgreen"
                     placeholder="Search by name, email or username"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                 />
                 <FiSearch className="absolute left-3 top-3 text-gray-400" />
                 </div>

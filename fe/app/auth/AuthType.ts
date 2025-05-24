@@ -1,12 +1,27 @@
-// components/auth/AuthTypes.ts
-import { ReactNode } from 'react';
 
-export interface AuthFormProps {
-    onToggleAuth: () => void;
-    loading: boolean;
-    setLoading: (loading: boolean) => void;
+export interface ApiError {
+    response?: {
+        status?: number;
+        data?: {
+            message?: string;
+            success: boolean;
+        }
+    }
 }
-
+export interface ApiResponse<T> {
+    success: boolean;
+    message?: string;
+    payload: T;
+}
+export interface User {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    level: string;
+    role?: string;
+    profile_picture_url?: string;
+}
 export interface Level {
     id: string;
     name: string;

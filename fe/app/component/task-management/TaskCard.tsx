@@ -16,7 +16,7 @@ const TaskCard = ({ task, onDragStart }: { task: Task; onDragStart: (task: Task)
         <h3 className="font-bold text-lg mb-2">{task.title}</h3>
         <p className="text-gray-600 mb-3">{task.description}</p>
         <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to: {task.assignedTo}</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Assigned to: {task.assigned_to}</span>
             <span className={`text-xs px-2 py-1 rounded-full ${severityColors[task.severity]}`}>
             {task.severity}
             </span>

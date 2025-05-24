@@ -1,57 +1,122 @@
 'use client'
-import { useState, useRef, useEffect } from 'react';
+
+import { useState, useEffect } from 'react';
+import api from '../../lib/api';
 import TaskCard from './TaskCard';
 import ProgressBar from './ProgressBar';
 import TaskForm from './TaskForm';
 import GroupChat from './GroupChat';
-import { Task } from "./Types";
+import { Task, TaskProgress, TaskStatus, TaskSummary} from '../task-management/Types';
 import { GoTrash } from "react-icons/go";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoChatbubblesOutline } from "react-icons/io5";
 
-const TaskBoard = () => {
-    const [tasks, setTasks] = useState<Task[]>([
-        {
-        id: '1',
-        title: 'Design Homepage',
-        description: 'Create mockups for the homepage',
-        assignedTo: 'Sarah',
-        severity: 'high',
-        status: 'todo'
-        },
-        {
-        id: '2',
-        title: 'API Integration',
-        description: 'Connect frontend to backend API',
-        assignedTo: 'Mike',
-        severity: 'medium',
-        status: 'in-progress'
-        }
-    ]);
-    
+export interface TaskBoardProps {
+    groupId?: string; // Make groupId optional
+}
+
+const TaskBoard = ({ groupId }: TaskBoardProps) => {
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [progress, setProgress] = useState<TaskProgress | null>(null);
+    const [summary, setSummary] = useState<TaskSummary[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
     const [draggedTask, setDraggedTask] = useState<Task | null>(null);
     const [showTrash, setShowTrash] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [formStatus, setFormStatus] = useState<'todo' | 'in-progress' | 'completed'>('todo');
-    
     const [showChat, setShowChat] = useState(false);
+    const [tempStatus, setTempStatus] = useState<TaskStatus>('todo');
 
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(task => task.status === 'completed').length;
-    const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
-    const todoTasks = tasks.filter(task => task.status === 'todo').length;
+    // Fetch tasks when component mounts or groupId changes
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!groupId) {
+                setLoading(false);
+                return;
+            }
 
-    const addTask = (status: 'todo' | 'in-progress' | 'completed') => {
-        setFormStatus(status);
+            setLoading(true);
+            try {
+                // Use the correct API endpoints
+                const [tasksRes, progressRes, summaryRes] = await Promise.all([
+                    api.get(`/task/group/${groupId}`),
+                    api.get(`/task/group/${groupId}/progress`),
+                    api.get(`/task/group/${groupId}/summary`)
+                ]);
+
+                if (tasksRes.data?.success) {
+                    setTasks(tasksRes.data.payload);
+                }
+                if (progressRes.data?.success) {
+                    setProgress(progressRes.data.payload);
+                }
+                if (summaryRes.data?.success) {
+                    setSummary(summaryRes.data.payload);
+                }
+            } catch (err) {
+                console.error('Failed to fetch task data:', err);
+                setError('Failed to load tasks');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [groupId]);
+
+
+    const handleDeleteTask = async (taskId: number) => {
+        try {
+            const response = await api.delete(`/task/${taskId}`);
+            if (response.data?.success) {
+                setTasks(prev => prev.filter(task => task.id !== taskId));
+            }
+        } catch (err) {
+            console.error('Failed to delete task:', err);
+            setError('Failed to delete task');
+        }
+    };
+
+    const addTask = (status: TaskStatus) => {
+        setTempStatus(status);
         setShowForm(true);
     };
 
-    const handleSaveTask = (newTask: Omit<Task, 'id'>) => {
-        setTasks([...tasks, {
-        ...newTask,
-        id: Date.now().toString()
-        }]);
-        setShowForm(false);
+    const handleSaveTask = async (newTask: Omit<Task, 'id'>) => {
+        if (!groupId) {
+            setError('Group ID is required');
+            return;
+        }
+
+        try {
+            const response = await api.post('/task', {
+                ...newTask,
+                group_id: parseInt(groupId), // Add group_id
+                status: tempStatus
+            });
+
+            if (response.data?.success) {
+                setTasks(prev => [...prev, response.data.payload]);
+                setShowForm(false);
+                
+                // Refresh data after creating new task
+                const [progressRes, summaryRes] = await Promise.all([
+                    api.get(`/task/group/${groupId}/progress`),
+                    api.get(`/task/group/${groupId}/summary`)
+                ]);
+
+                if (progressRes.data?.success) {
+                    setProgress(progressRes.data.payload);
+                }
+                if (summaryRes.data?.success) {
+                    setSummary(summaryRes.data.payload);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to create task:', err);
+            setError('Failed to create task');
+        }
     };
 
     const handleDragStart = (task: Task) => {
@@ -59,35 +124,54 @@ const TaskBoard = () => {
         setShowTrash(true);
     };
 
-    const handleDrop = (status: 'todo' | 'in-progress' | 'completed') => {
+    const handleDrop = async (status: TaskStatus) => {
         if (draggedTask) {
-        const updatedTasks = tasks.map(t => 
-            t.id === draggedTask.id ? { ...t, status } : t
-        );
-        setTasks(updatedTasks);
+            try {
+                const response = await api.patch(`/task/${draggedTask.id}`, {
+                    status
+                });
+
+                if (response.data?.success) {
+                    const updatedTasks = tasks.map(t => 
+                        t.id === draggedTask.id ? { ...t, status } : t
+                    );
+                    setTasks(updatedTasks);
+                }
+            } catch (err) {
+                console.error('Failed to update task:', err);
+                setError('Failed to update task status');
+            }
         }
         setDraggedTask(null);
     };
 
-    const deleteTask = (id: string) => {
-        setTasks(tasks.filter(task => task.id !== id));
-        setShowTrash(false);
-    };
 
-    const filteredTasks = (status: 'todo' | 'in-progress' | 'completed') => {
+    const filteredTasks = (status: TaskStatus) => {
         return tasks.filter(task => task.status === status);
     };
 
-    const progressPercentage = tasks.length > 0 
-        ? (filteredTasks('completed').length / tasks.length) * 100 
-        : 0;
-
-    const handleChatToggle = () => {
+    const toggleChat = () => {
         setShowChat(!showChat);
     };
 
+    if (loading) {
         return (
-        <div className="ml-20 p-6">
+            <div className="flex justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fontgreen"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="text-red-500 bg-red-50 p-4 rounded-lg">
+                {error}
+            </div>
+        );
+    }
+
+        return (
+        <div className="relative h-full ml-20 p-6">
             {showForm && (
                 <div className="fixed inset-0 bg-gray-200 bg-opacity-100 flex items-center justify-center z-50">
                     <TaskForm 
@@ -101,10 +185,10 @@ const TaskBoard = () => {
                 <h1 className="text-3xl font-bold">Task Manager</h1>
             </div>
 
-            {/* Progress Section */}
+            {/* Updated Progress Section using API data */}
             <div className="flex items-start mb-8">
                 <div className="w-48 p-4 border border-gray-200 rounded-lg mr-6">
-                    <ProgressBar percentage={progressPercentage} />
+                    <ProgressBar percentage={progress?.percentage ?? 0} />
                     <p className="mt-2 text-center font-bold text-sm">Completion</p>
                 </div>
                 
@@ -112,67 +196,77 @@ const TaskBoard = () => {
                     <h3 className="font-bold text-fontgreen text-lg mb-3">Task Statistics</h3>
                     <div className="grid grid-cols-3 gap-4">
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-fontgreen">{totalTasks}</p>
+                            <p className="text-2xl font-bold text-fontgreen">
+                                {progress?.total ?? 0}
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-fontgreen">Total Tasks</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-greenfont">{completedTasks}</p>
+                            <p className="text-2xl font-bold text-greenfont">
+                                {progress?.completed ?? 0}
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-greenfont">Completed</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-2xl font-bold text-pinkfont">{inProgressTasks}</p>
+                            <p className="text-2xl font-bold text-pinkfont">
+                                {summary?.find(s => s.status === 'in_progress')?.count ?? 0}
+                            </p>
                             <p className="text-sm text-gray-500 dark:text-pinkfont">In Progress</p>
                         </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <p className="text-sm">
-                            <span className="font-semibold">To Do:</span> {todoTasks} tasks
+                            <span className="font-semibold">To Do:</span> {summary?.find(s => s.status === 'todo')?.count ?? 0} tasks
                         </p>
                     </div>
                 </div>
             </div>
                 
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-                {(['todo', 'in-progress', 'completed'] as const).map((status) => (
-                    <div 
+                {(['todo', 'in_progress', 'done'] as TaskStatus[]).map((status) => (
+                    <div
                         key={status}
                         className={`rounded-lg min-h-[400px] overflow-hidden ${
                             status === 'todo' ? 'bg-orangebase border border-orangedark' :
-                            status === 'in-progress' ? 'bg-pinkbase border border-pinkdark' :
+                            status === 'in_progress' ? 'bg-pinkbase border border-pinkdark' :
                             'bg-greenbase border border-green-100'
                         }`}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={() => handleDrop(status)}
-                        >
-                        {/* Header */}
+                    >
+                        {/* Updated Header with summary count */}
                         <div className={`px-4 py-2 flex justify-between items-center ${
                             status === 'todo' ? 'bg-orangedark' :
-                            status === 'in-progress' ? 'bg-pinkdark' :
+                            status === 'in_progress' ? 'bg-pinkdark' :
                             'bg-greendark'
                         }`}>
-                            <h2 className={`text-xl font-semibold capitalize ${
-                            status === 'todo' ? 'text-orangefont' :
-                            status === 'in-progress' ? 'text-pinkfont' :
-                            'text-green-800'
-                            }`}>
-                            {status.replace('-', ' ')}
-                            </h2>
-                            <button 
-                            onClick={() => addTask(status)}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80`}
+                            <div className="flex items-center">
+                                <h2 className={`text-xl font-semibold capitalize ${
+                                    status === 'todo' ? 'text-orangefont' :
+                                    status === 'in_progress' ? 'text-pinkfont' :
+                                    'text-green-800'
+                                }`}>
+                                    {status.replace('_', ' ')}
+                                </h2>
+                                <span className="ml-2 text-sm opacity-75">
+                                    ({summary?.find(s => s.status === status)?.count ?? 0})
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => addTask(status)}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center hover:opacity-80`}
                             >
-                            <CiCirclePlus 
-                                style={{strokeWidth: "1"}} 
-                                size={30}
-                                className={
-                                status === 'todo' ? 'text-orangefont' :
-                                status === 'in-progress' ? 'text-pinkfont' :
-                                'text-green-800'
-                                }
-                            />
+                                <CiCirclePlus
+                                    style={{strokeWidth: "1"}}
+                                    size={30}
+                                    className={
+                                        status === 'todo' ? 'text-orangefont' :
+                                        status === 'in_progress' ? 'text-pinkfont' :
+                                        'text-green-800'
+                                    }
+                                />
                             </button>
                         </div>
-
                         {/* Task content */}
                         <div className="p-4 space-y-4">
                             {filteredTasks(status).map(task => (
@@ -189,7 +283,7 @@ const TaskBoard = () => {
 
             {/* Tombol chat di pojok bawah kanan */}
             <button 
-                onClick={handleChatToggle}
+                onClick={toggleChat}
                 className={`fixed right-6 bottom-6 z-20 p-3 rounded-full shadow-lg ${showChat ? 'bg-gray-200 text-gray-700' : 'bg-green text-white'}`}
             >
                 <IoChatbubblesOutline size={24} />
@@ -201,7 +295,7 @@ const TaskBoard = () => {
                 <div className="p-3 bg-gray-200 text-gray-800 rounded-t-lg flex justify-between items-center">
                 <h3 className="font-bold text-xl">Discussion</h3>
                 <button 
-                    onClick={handleChatToggle}
+                    onClick={toggleChat}
                     className="text-white hover:text-fontgreen"
                 >
                     ✕
@@ -216,12 +310,12 @@ const TaskBoard = () => {
                     <button 
                         className="p-4 bg-red-900 text-white rounded-full shadow-lg hover:bg-red-600"
                         onClick={() => {
-                            if (draggedTask) deleteTask(draggedTask.id);
+                            if (draggedTask) handleDeleteTask(draggedTask.id);
                             setShowTrash(false);
                         }}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={() => {
-                            if (draggedTask) deleteTask(draggedTask.id);
+                            if (draggedTask) handleDeleteTask(draggedTask.id);
                             setShowTrash(false);
                         }}
                     >

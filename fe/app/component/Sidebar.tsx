@@ -1,29 +1,65 @@
 // Navigation Bar when you logged in. Have brief profile, Course, Task Management, and Profile (Pomodoro if you want it seperated. A)
 'use client'
+
 import UserProfile from './UserProfile';
 import ThemeToggle from './ThemeToggle';
-import { FaHome, FaUser, FaTasks } from 'react-icons/fa';
+import { FaHome, FaUser, FaTasks, FaSignOutAlt } from 'react-icons/fa';
 import { LuPanelLeftOpen, LuPanelLeftClose } from 'react-icons/lu';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter} from 'next/navigation';
+
+interface LogoutButtonProps {
+    isOpen: boolean;
+    onClick: () => void;
+}
+
+const LogoutButton = ({ isOpen, onClick }: LogoutButtonProps) => (
+    <li className="relative group">
+        <button 
+            onClick={onClick}
+            className="w-full flex items-center p-3 pl-5 rounded-lg transition-colors duration-200 relative hover:bg-[#110b0b] hover:text-fontgreen"
+        >
+            <span className="absolute left-0 top-0 h-full w-1 transition-all duration-300 bg-fontgreen scale-y-0 group-hover:scale-y-100 origin-top" />
+            <span className="text-xl">
+                <FaSignOutAlt size={20} />
+            </span>
+            {isOpen && <span className="ml-3">Logout</span>}
+        </button>
+    </li>
+);
+
 
 const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () => void }) => {
     const pathname = usePathname();
+    const router = useRouter();
 
-    // Not really sure how it went. Need more troubleshooting
     const routeMap: Record<string, string> = {
             'Course': '/content/course',
             'Task Manager': '/content/task-manager',
-            'Account': '/content/account'
+            'Account': '/content/account',
+
     };
     const getActiveState = (text: string) => {
         return pathname?.startsWith(routeMap[text] || '');
     };
 
+   const handleLogout = async () => {
+        try {
+            console.log('Logging out...');
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            console.log('Token after remove:', localStorage.getItem('token'));
+            router.push('/');
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
+    };
+
+
     return (
         <div className={`fixed left-0 top-0 h-full bg-basegreen text-gray-400 transition-all duration-300 z-50 ${isOpen ? 'w-64' : 'w-20'}`}>
             {/* dark:bg-gray-800 dark:text-white */}
             <div className="p-4 flex flex-col h-full">
-                <button 
+                <button
                     onClick={toggleNavbar}
                     className="self-end mb-4 hover:text-fontgreen text-xl p-1 rounded-md transition-colors"
                     // dark:hover:bg-gray-700
@@ -57,6 +93,7 @@ const Sidebar = ({ isOpen, toggleNavbar }: { isOpen: boolean; toggleNavbar: () =
                             active={getActiveState('Account')} 
                             route={routeMap['Account']} 
                         />
+                        <LogoutButton isOpen={isOpen} onClick={handleLogout} />
                     </ul>
                 </nav>
                 
@@ -73,7 +110,7 @@ const NavItem = ({ isOpen, icon, text, active = false, route }: { isOpen: boolea
                 href={route}
                 className={`flex items-center p-3 pl-5 rounded-lg transition-colors duration-200 relative
                     ${active 
-                        ? 'bg-white text-fontgreen font-semibold' 
+                        ? 'bg-white text-fontgreen font-semibold'
                         : ' hover:text-fontgreen'}
                 `}
             >

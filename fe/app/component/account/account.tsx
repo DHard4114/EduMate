@@ -1,12 +1,17 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useState, useEffect, useCallback} from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../auth-context'
 import Head from 'next/head'
-import api from '@/app/lib/api'
+import Image from 'next/image'
+import axios from 'axios'
+import { ApiError, ApiResponse, User } from './../../auth/AuthType';
+
+
 
 export default function AccountPage() {
-    const { user, setUser } = useAuth()
+    const { user, setUser, refreshProfile } = useAuth()
     const router = useRouter()
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
@@ -17,19 +22,20 @@ export default function AccountPage() {
     })
     const [profilePicture, setProfilePicture] = useState<File | null>(null)
     const [previewImage, setPreviewImage] = useState('')
+    const [shouldRedirect, setShouldRedirect] = useState(false)
 
-    // Initialize form data with user data
+    // Update useEffect to use correct field name
     useEffect(() => {
         if (user === undefined || user === null) {
             return
         }
 
-        // Update form data when user is available
         setFormData({
             name: user.name || '',
             level: user.level || ''
         })
 
+        // Change this to use profile_picture_url instead of profile_picture
         if (user.profile_picture_url) {
             setPreviewImage(user.profile_picture_url)
         }
@@ -37,7 +43,9 @@ export default function AccountPage() {
         setLoading(false)
     }, [user])
 
+
     const getInitials = (name: string) => {
+        if (!name) return '??'
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     }
 
@@ -60,6 +68,68 @@ export default function AccountPage() {
         }
     }
 
+    useEffect(() => {
+        if (shouldRedirect) {
+            router.push('/auth')
+        }
+    }, [shouldRedirect, router])
+
+    const fetchProfile = useCallback(async () => {
+    try {
+        setLoading(true)
+        const token = localStorage.getItem('token')
+        if (!token) {
+            setShouldRedirect(true)
+            return
+        }
+
+        // Fix the API URL formatting
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, '') // Remove trailing slashes
+        const response = await axios.get<ApiResponse<User>>(
+            `${baseUrl}/user/profile`, // Ensure proper URL formatting
+            {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }
+        )
+
+        if (response.data.success && response.data.payload) {
+            setUser(response.data.payload)
+            setFormData({
+                name: response.data.payload.name || '',
+                level: response.data.payload.level || ''
+            })
+            if (response.data.payload.profile_picture_url) {
+                setPreviewImage(response.data.payload.profile_picture_url)
+            }
+        }
+    } catch (error: unknown) {
+        console.error('Profile fetch error:', error)
+        const apiError = error as ApiError
+        
+        // Improved error handling
+        if (axios.isAxiosError(error)) {
+            if (error.response?.status === 404) {
+                setError('API endpoint not found. Please check your API URL configuration.')
+                console.error('API URL:', process.env.NEXT_PUBLIC_API_URL)
+            } else if (error.response?.status === 401) {
+                setShouldRedirect(true)
+            } else {
+                setError(apiError.response?.data?.message || 'Failed to load profile')
+            }
+        } else {
+                setError('An unexpected error occurred')
+            }
+        } finally {
+            setLoading(false)
+        }
+    }, [setUser, setShouldRedirect, setFormData, setPreviewImage, setError]);
+
+    useEffect(() => {
+        fetchProfile()
+    }, [fetchProfile])
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
@@ -68,31 +138,67 @@ export default function AccountPage() {
         try {
             const formDataToSend = new FormData()
             
-            if (formData.name) formDataToSend.append('name', formData.name)
+            if (formData.name.trim()) formDataToSend.append('name', formData.name.trim())
             if (formData.level) formDataToSend.append('level', formData.level)
             if (profilePicture) formDataToSend.append('profile_picture', profilePicture)
 
-            const response = await api.patch('/user/profile', formDataToSend);
+            const token = localStorage.getItem('token')
+            
+            const response = await axios.patch<ApiResponse<User>>(
+                `${process.env.NEXT_PUBLIC_API_URL}user/profile`,
+                formDataToSend,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                }
+            )
 
-            setUser(response.data.payload)
-            setSuccess('Profile updated successfully!')
+            if (response.data.success) {
+                setUser(response.data.payload)
+                if (response.data.payload.profile_picture_url) {
+                    setPreviewImage(response.data.payload.profile_picture_url)
+
+                }
+                setSuccess('Profile updated successfully!')
+                await refreshProfile() // Refresh user data in context
+            }
+            
             setTimeout(() => setSuccess(''), 3000)
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to update profile')
+        } catch (error: unknown) {
+            console.error('Profile update error:', error)
+            const apiError = error as ApiError
+            setError(apiError.response?.data?.message || 'Failed to update profile')
         }
     }
 
     const handleDeleteAccount = async () => {
+        if (!user?.id) {
+            setError('User ID not found')
+            return
+        }
+
         if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
             try {
-                await api.delete(`/user/${user?.id}`)
-                router.push('/auth')
-                // Logout after account deleted
+                const token = localStorage.getItem('token')
+                
+                await axios.delete(
+                    `${process.env.NEXT_PUBLIC_API_URL}user/${user.id}`,
+                    {
+                        headers: {
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        }
+                    }
+                )
+                
                 localStorage.removeItem('token')
                 setUser(null)
                 router.push('/auth')
-            } catch (err: any) {
-                setError(err.response?.data?.message || 'Failed to delete account')
+            } catch (error: unknown) {
+                console.error('Account deletion error:', error)
+                const apiError = error as ApiError
+                setError(apiError.response?.data?.message || 'Failed to delete account')
             }
         }
     }
@@ -106,6 +212,7 @@ export default function AccountPage() {
     }
 
     if (!user) {
+        setShouldRedirect(true)
         return null
     }
 
@@ -123,7 +230,7 @@ export default function AccountPage() {
                             <div className="flex items-center">
                                 <div className="w-10 h-10 rounded-full bg-darkgreen flex items-center justify-center text-white">
                                     <span className="text-lg">
-                                        {user ? getInitials(user.name) : '??'}
+                                        {getInitials(user.name)}
                                     </span>
                                 </div>
                             </div>
@@ -149,15 +256,18 @@ export default function AccountPage() {
                                 <div className="flex items-center space-x-4">
                                     <div className="relative">
                                         {previewImage ? (
-                                            <img
+                                            <Image
                                                 src={previewImage}
                                                 alt="Profile"
+                                                width={80}
+                                                height={80}
                                                 className="w-20 h-20 rounded-full object-cover"
+                                                priority
                                             />
                                         ) : (
                                             <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center">
                                                 <span className="text-gray-500">
-                                                    {user ? getInitials(user.name) : '??'}
+                                                    {getInitials(user.name)}
                                                 </span>
                                             </div>
                                         )}
@@ -180,7 +290,7 @@ export default function AccountPage() {
                                 </div>
                             </div>
 
-                            {/* Email */}
+                            {/* Email - Read only */}
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
                                     Email
@@ -197,7 +307,7 @@ export default function AccountPage() {
                                 <p className="text-gray-500 text-xs italic mt-1">Email cannot be changed</p>
                             </div>
 
-                            {/* Username */}
+                            {/* Username - Read only if exists */}
                             {user.username && (
                                 <div className="mb-4">
                                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="username">
@@ -216,6 +326,26 @@ export default function AccountPage() {
                                 </div>
                             )}
 
+                            {/* Role - Read only */}
+                            {user.role && (
+                                <div className="mb-4">
+                                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="role">
+                                        Role
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="role"
+                                        name="role"
+                                        value={user.role}
+                                        readOnly
+                                        disabled
+                                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none focus:shadow-outline cursor-not-allowed"
+                                    />
+                                    <p className="text-gray-500 text-xs italic mt-1">Role cannot be changed</p>
+                                </div>
+                            )}
+
+                            {/* Name - Editable */}
                             <div className="mb-4">
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
                                     Full Name
@@ -227,9 +357,11 @@ export default function AccountPage() {
                                     value={formData.name}
                                     onChange={handleChange}
                                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                                    placeholder="Enter your full name"
                                 />
                             </div>
 
+                            {/* Level - Editable */}
                             <div className="mb-6">
                                 <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="level">
                                     Skill Level

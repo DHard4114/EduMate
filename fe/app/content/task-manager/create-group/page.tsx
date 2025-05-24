@@ -1,29 +1,31 @@
 'use client'
+
 import { useState, useEffect } from 'react';
 import { FiUserPlus, FiX } from 'react-icons/fi';
 import { FaUserFriends } from 'react-icons/fa';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { User, Group } from '@/app/component/create-group/types';
+import { User, Group, ApiUser, ApiResponse } from '@/app/component/task-management/Types';
+import api from '../../../lib/api';
 import AddMembersModal from '@/app/component/create-group/AddMembersModal';
 import SuccessNotification from '@/app/component/create-group/SuccessNotification';
 
 const CreateGroupPage = () => {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
-    const [users, setUsers] = useState<User[]>([]); // Added missing users state
+    const [users, setUsers] = useState<User[]>([]);
     const [group, setGroup] = useState<Group>({
         name: '',
         description: '',
-        members: [],
+        members: []
     });
     const [isSearching, setIsSearching] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState('');
 
     const toggleUserSelection = (userId: string) => { // Added missing function
-        setUsers(users.map(user => 
+        setUsers(users.map(user =>
             user.id === userId ? { ...user, isSelected: !user.isSelected } : user
         ));
     };
@@ -39,11 +41,11 @@ const CreateGroupPage = () => {
 
     useEffect(() => {
         const fetchUsers = async () => {
-            setIsSearching(true);
+            setIsLoading(true);
             try {
-                const response = await axios.get('http://localhost:5001/user/get');
-                if (response.data && Array.isArray(response.data)) {
-                    const usersWithSelection: User[] = response.data.map((user: any) => ({
+                const response = await api.get<ApiResponse<ApiUser[]>>('/user/get');
+                if (response.data?.payload) {
+                    const usersWithSelection: User[] = response.data.payload.map((user) => ({
                         id: user.id.toString(),
                         name: user.name || 'No Name',
                         email: user.email || 'No Email',
@@ -51,31 +53,32 @@ const CreateGroupPage = () => {
                         isSelected: false
                     }));
                     setUsers(usersWithSelection);
-                } else {
-                    throw new Error('Invalid response format');
                 }
             } catch (error) {
                 console.error('Failed to fetch users:', error);
-                setUsers([]);
+                setError('Failed to load users');
             } finally {
-                setIsSearching(false);
+                setIsLoading(false);
             }
         };
-        
+
         fetchUsers();
     }, []);
 
-    const handleSearch = (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSearching(true);
-    };
+    {/*
+        const handleSearch = (e: React.FormEvent) => {
+            e.preventDefault();
+            setIsSearching(true);
+        };
+    */}
 
     const removeMember = (userId: string) => {
-        setGroup({
-            ...group,
-            members: group.members.filter(member => member.id !== userId)
-        });
+        setGroup(prevGroup => ({
+            ...prevGroup,
+            members: prevGroup.members.filter((member: User) => member.id !== userId)
+        }));
     };
+
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,43 +86,59 @@ const CreateGroupPage = () => {
         setIsCreating(true);
         
         try {
-            const createResponse = await axios.post('http://localhost:5001/group/', {
-                name: group.name
-            }, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
+            // Validasi
+            if (!group.name.trim()) {
+                throw new Error('Group name is required');
+            }
+
+            if (group.members.length === 0) {
+                throw new Error('At least one member is required');
+            }
+
+            // Buat grup - sesuai dengan API backend
+            const createResponse = await api.post<ApiResponse<{ id: number }>>('/group', {
+                name: group.name.trim()
+                // Backend tidak memerlukan description pada saat create
             });
+
+            if (!createResponse.data?.payload?.id) {
+                throw new Error('Invalid response from server');
+            }
 
             const groupId = createResponse.data.payload.id;
 
-            const addMemberPromises = group.members.map(member => 
-                axios.post('http://localhost:5001/group/addmember', {
-                    group_id: groupId,
-                    username: member.username
-                }, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`
-                    }
-                })
-            );
+            // Tambah member satu per satu
+            try {
+                // Gunakan for...of untuk menambahkan member secara sequential
+                for (const member of group.members) {
+                    const addMemberResponse = await api.post('/group/addmember', {
+                        group_id: groupId,
+                        username: member.username // pastikan username ada
+                    });
 
-            await Promise.all(addMemberPromises);
+                    if (!addMemberResponse.data?.success) {
+                        throw new Error(`Failed to add member: ${member.username}`);
+                    }
+                }
+            } catch (memberError) {
+                // Jika gagal, hapus grup
+                await api.delete(`/group/${groupId}`);
+                throw memberError;
+            }
 
             setShowSuccess(true);
             setTimeout(() => {
                 setShowSuccess(false);
-                router.push('/groups');
+                router.push(`/group/${groupId}`);
             }, 2000);
-            
-            setGroup({
-                name: '',
-                description: '',
-                members: []
-            });
-        } catch (err: any) {
-            console.error('Failed to create group:', err);
-            setError(err.response?.data?.message || 'Failed to create group. Please try again.');
+
+        } catch (error) {
+            console.error('Failed to create group:', error);
+            if (error instanceof Error) {
+                setError(error.message);
+            } else {
+                setError('An unexpected error occurred');
+            }
         } finally {
             setIsCreating(false);
         }
@@ -138,6 +157,13 @@ const CreateGroupPage = () => {
                         {error}
                     </div>
                 )}
+
+                {isLoading ? (
+                <div className="bg-white rounded-xl shadow-lg p-6 mb-6 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-fontgreen"></div>
+                    <span className="ml-3 text-gray-600">Loading users...</span>
+                </div>
+            ) : (
 
                 <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-6 mb-6">
                     <div className="mb-6">
@@ -188,7 +214,7 @@ const CreateGroupPage = () => {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                {group.members.map(member => (
+                                {group.members.map((member: User) => (
                                     <div key={member.id} className="flex items-center justify-between bg-basegreen rounded-lg p-3">
                                         <div className="flex items-center">
                                             <span className="text-gray-700">{member.name}</span>
@@ -216,7 +242,7 @@ const CreateGroupPage = () => {
                         </button>
                     </div>
                 </form>
-
+                )}
                 <AddMembersModal
                     isOpen={isSearching}
                     onClose={() => setIsSearching(false)}

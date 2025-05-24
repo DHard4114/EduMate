@@ -1,34 +1,53 @@
-import { FC } from "react";
+'use client';
 
-type LessonNodeProps = {
+
+import { FaBookOpen, FaStar } from "react-icons/fa";
+
+interface LessonNodeProps {
     title: string;
-    icon: React.ReactNode;
     completed?: boolean;
     locked?: boolean;
     current?: boolean;
-    lessonsCount: string;
-};
+    onClick: () => void;
+}
 
-export const LessonNode: FC<LessonNodeProps> = ({
+export default function LessonNode({
     title,
-    icon,
     completed,
     locked,
     current,
-    lessonsCount,
-    }) => {
+    onClick
+}: LessonNodeProps) {
+    
+    const handleClick = () => {
+        if (!locked) {
+            onClick();
+        }
+    };
+
     return (
-        <div className="flex flex-col items-center text-center relative">
-        <div
-            className={
-            `"w-16 h-16 rounded-full flex items-center justify-center text-white text-lg shadow-lg",
-            completed ? "bg-green" : current ? "bg-green" : "bg-gray-300"`
-            }
+        <div 
+            className={`
+                relative flex flex-col items-center text-center w-24 
+                ${!locked ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-not-allowed opacity-50'}
+            `}
+            onClick={handleClick}
         >
-            {icon}
-        </div>
-        <p className="text-sm font-semibold mt-2">{title}</p>
-        <p className="text-xs text-gray-500">{lessonsCount}</p>
+            {current && (
+                <div className="absolute -top-2 -right-2 bg-pink-500 text-white rounded-full p-1 text-xs shadow">
+                    <FaStar />
+                </div>
+            )}
+
+            <div
+                className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl shadow-xl border-6
+                ${completed ? "bg-green border-green-200" : current ? "bg-green border-basegreen" : "bg-gray-300 border-gray-200"}
+                ${locked ? "opacity-90 grayscale" : ""}`}
+            >
+                <FaBookOpen />
+            </div>
+
+            <p className="text-sm font-semibold mt-2">{title}</p>
         </div>
     );
-};
+}
