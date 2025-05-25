@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { FiUserPlus, FiX } from 'react-icons/fi';
 import { FaUserFriends } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
-import { User, Group, ApiUser, ApiResponse } from '@/app/component/task-management/Types';
+import { ApiUser, ApiResponse } from '@/app/component/task-management/Types';
+import { User, GroupMember, CreateGroupState } from '@/app/component/create-group/types';
 import api from '../../../lib/api';
 import AddMembersModal from '@/app/component/create-group/AddMembersModal';
 import SuccessNotification from '@/app/component/create-group/SuccessNotification';
@@ -13,7 +14,7 @@ const CreateGroupPage = () => {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [users, setUsers] = useState<User[]>([]);
-    const [group, setGroup] = useState<Group>({
+    const [group, setGroup] = useState<CreateGroupState>({
         name: '',
         description: '',
         members: []
@@ -30,11 +31,26 @@ const CreateGroupPage = () => {
         ));
     };
 
-    const addSelectedUsers = (selectedUsers: User[]) => { // Added missing function
-        setGroup({
-            ...group,
-            members: [...group.members, ...selectedUsers]
-        });
+    const removeMember = (userId: string) => {
+        setGroup((prevGroup: CreateGroupState) => ({
+            ...prevGroup,
+            members: prevGroup.members.filter((member: GroupMember) => member.id !== userId)
+        }));
+    };
+
+    const addSelectedUsers = (selectedUsers: User[]) => {
+        const newMembers: GroupMember[] = selectedUsers.map(({ id, name, email, username }) => ({
+            id,
+            name,
+            email,
+            username
+        }));
+        
+        setGroup((prevGroup: CreateGroupState) => ({
+            ...prevGroup,
+            members: [...prevGroup.members, ...newMembers]
+        }));
+        
         setUsers(users.map(user => ({ ...user, isSelected: false })));
         setSearchQuery('');
     };
@@ -45,12 +61,12 @@ const CreateGroupPage = () => {
             try {
                 const response = await api.get<ApiResponse<ApiUser[]>>('/user/get');
                 if (response.data?.payload) {
-                    const usersWithSelection: User[] = response.data.payload.map((user) => ({
+                    const usersWithSelection = response.data.payload.map((user) => ({
                         id: user.id.toString(),
                         name: user.name || 'No Name',
                         email: user.email || 'No Email',
                         username: user.username || '',
-                        isSelected: false
+                        isSelected: false as const // Explicitly set as boolean
                     }));
                     setUsers(usersWithSelection);
                 }
@@ -64,21 +80,6 @@ const CreateGroupPage = () => {
 
         fetchUsers();
     }, []);
-
-    {/*
-        const handleSearch = (e: React.FormEvent) => {
-            e.preventDefault();
-            setIsSearching(true);
-        };
-    */}
-
-    const removeMember = (userId: string) => {
-        setGroup(prevGroup => ({
-            ...prevGroup,
-            members: prevGroup.members.filter((member: User) => member.id !== userId)
-        }));
-    };
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -214,7 +215,7 @@ const CreateGroupPage = () => {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                {group.members.map((member: User) => (
+                                {group.members.map((member: GroupMember) => (
                                     <div key={member.id} className="flex items-center justify-between bg-basegreen rounded-lg p-3">
                                         <div className="flex items-center">
                                             <span className="text-gray-700">{member.name}</span>

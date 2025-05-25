@@ -105,7 +105,7 @@ exports.addGroupComment = async ({ group_id, user_id, content }) => {
     return result.rows[0];
 };
 
-// Mengambil komentar grup
+
 exports.getGroupComments = async (group_id) => {
     const result = await db.query(
         `SELECT group_comments.id, group_comments.content, group_comments.created_at, users.username
@@ -117,3 +117,34 @@ exports.getGroupComments = async (group_id) => {
     );
     return result.rows;
 };
+
+exports.removeMemberFromGroupByUsername = async ({ group_id, username, user_id }) => {
+    const creatorCheck = await db.query(
+        `SELECT 1 FROM task_groups WHERE id = $1 AND created_by = $2`,
+        [group_id, user_id]
+    );
+    if (creatorCheck.rowCount === 0) {
+        throw new Error("Only group creator can remove members");
+    }
+
+    const userResult = await db.query(
+        `SELECT id FROM users WHERE LOWER(username) = LOWER($1)`,
+        [username]
+    );
+    if (userResult.rowCount === 0) {
+        throw new Error("User not found");
+    }
+
+    const userIdToRemove = userResult.rows[0].id;
+
+    const deleteResult = await db.query(
+        `DELETE FROM group_members WHERE group_id = $1 AND user_id = $2 RETURNING *`,
+        [group_id, userIdToRemove]
+    );
+
+    if (deleteResult.rowCount === 0) {
+        throw new Error("User is not a member of this group");
+    }
+
+    return deleteResult.rows[0];
+}

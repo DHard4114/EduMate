@@ -33,7 +33,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       },
       short_break: {
         name: 'Short Break',
-        duration: 5 * 60,
+        duration: 1 * 10,
         color: 'bg-bluetime',
         text: 'text-bluetime',
         ring: 'ring-bluetime',
@@ -83,11 +83,10 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
         const response = await api.get('/pomodoro/history');
         setHistory(response.data.payload);
         
-        // Update completed pomodoros count from today's history
         const todayPomodoros = response.data.payload.filter((session: Session) => {
         const sessionDate = new Date(session.started_at);
         const today = new Date();
-        return sessionDate.toDateString() === today.toDateString() && 
+        return sessionDate.toDateString() === today.toDateString() &&
               session.type === 'pomodoro';
       });
         updateCompletedPomodoros(todayPomodoros.length);
@@ -100,11 +99,9 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
     }, [showTempNotification, updateCompletedPomodoros]);
 
 
-
-
   const fetchSummary = useCallback(async () => {
     try {
-      const response = await api.get('/pomodoro/summary');
+      const response = await api.get('pomodoro/summary');
       setSummary(response.data.payload);
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -112,9 +109,6 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
     }
   }, [showTempNotification]);
 
-  
-  
-  
   const switchMode = useCallback((newMode: ModeType, resetCompleted = false): void => {
       setIsActive(false);
       if (timerRef.current) {
@@ -301,7 +295,6 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       }
     }, []);
 
-
     useEffect(() => {
       const lastDate = localStorage.getItem('lastPomodoroDate');
       const today = new Date().toDateString();
@@ -359,8 +352,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
                 key={key}
                 onClick={() => switchMode(key)}
                 className={`flex-1 text-sm font-medium px-3 py-2 rounded-lg transition-all ${
-                  mode === key 
-                    ? `${modes[key].color} text-white shadow-md` 
+                  mode === key
+                    ? `${modes[key].color} text-white shadow-md`
                     : `${modes[key].bg} text-gray-600 hover:${modes[key].bg} hover:bg-opacity-70`
                 }`}
               >
@@ -398,6 +391,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
                   className="transition-all duration-1000 ease-linear"
                 />
               </svg>
+              
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className={`text-4xl font-mono font-bold ${modes[mode].text}`}>
                   {formatTime(timer)}
