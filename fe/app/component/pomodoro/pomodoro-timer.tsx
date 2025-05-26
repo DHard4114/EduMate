@@ -6,7 +6,7 @@ import api from '@/app/lib/api';
 
 const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
   const [isActive, setIsActive] = useState<boolean>(false);
-  const [timer, setTimer] = useState<number>(25 * 60);
+  const [timer, setTimer] = useState<number>(1 * 60);
   const [mode, setMode] = useState<ModeType>('pomodoro');
   const [completedPomodoros, setCompletedPomodoros] = useState<number>(0);
   const [showHistory, setShowHistory] = useState<boolean>(false);
@@ -17,6 +17,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
   const [notification, setNotification] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState<boolean>(false);
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+const [shouldReset, setShouldReset] = useState(false);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -25,7 +26,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
   const modes: Modes = useMemo(() => ({
       pomodoro: {
         name: 'Focus',
-        duration: 25 * 60,
+        duration: 1 * 60,
         color: 'bg-green',
         text: 'text-green',
         ring: 'ring-green',
@@ -33,7 +34,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       },
       short_break: {
         name: 'Short Break',
-        duration: 5 * 60,
+        duration: 1 * 60,
         color: 'bg-bluetime',
         text: 'text-bluetime',
         ring: 'ring-bluetime',
@@ -41,7 +42,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       },
       long_break: {
         name: 'Long Break',
-        duration: 15 * 60,
+        duration: 1 * 60,
         color: 'bg-time',
         text: 'text-time',
         ring: 'ring-time',
@@ -49,20 +50,9 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       },
     }), []);
     
-    const persistTimer = useCallback(() => {
-      localStorage.setItem('pomodoroState', JSON.stringify({
-        timer,
-        mode,
-        isActive,
-        sessionStartTime,
-        completedPomodoros
-      }));
-    }, [timer, mode, isActive, sessionStartTime, completedPomodoros]);
-    
     const updateCompletedPomodoros = useCallback((count: number) => {
       const today = new Date().toDateString();
       localStorage.setItem('lastPomodoroDate', today);
-      localStorage.setItem('completedPomodoros', count.toString());
       setCompletedPomodoros(count);
     }, []);
 
@@ -82,24 +72,13 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       try {
         const response = await api.get('/pomodoro/history');
         setHistory(response.data.payload);
-        
-        // Update completed pomodoros count from today's history
-        const todayPomodoros = response.data.payload.filter((session: Session) => {
-        const sessionDate = new Date(session.started_at);
-        const today = new Date();
-        return sessionDate.toDateString() === today.toDateString() && 
-              session.type === 'pomodoro';
-      });
-        updateCompletedPomodoros(todayPomodoros.length);
       } catch (error) {
         console.error('Error fetching history:', error);
         showTempNotification('Failed to load history');
       } finally {
         setIsHistoryLoading(false);
       }
-    }, [showTempNotification, updateCompletedPomodoros]);
-
-
+    }, [showTempNotification]);
 
 
   const fetchSummary = useCallback(async () => {
@@ -112,10 +91,14 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
     }
   }, [showTempNotification]);
 
+  const resetCompletedPomodoros = useCallback(() => {
+      const today = new Date().toDateString();
+      localStorage.setItem('lastPomodoroDate', today);
+      localStorage.setItem('completedPomodoros', '0');
+      setCompletedPomodoros(0);
+    }, []);
   
-  
-  
-  const switchMode = useCallback((newMode: ModeType, resetCompleted = false): void => {
+  const switchMode = useCallback((newMode: ModeType): void => {
       setIsActive(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -124,13 +107,8 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       setTimer(modes[newMode].duration);
       setProgress(0);
 
-      if (resetCompleted) {
-        updateCompletedPomodoros(0);
-      localStorage.setItem('completedPomodoros', '0');
-      }
-
       showTempNotification(`Switched to ${modes[newMode].name} mode`);
-    }, [modes, showTempNotification, updateCompletedPomodoros]);
+    }, [modes, showTempNotification]);
 
 
     const handleHistoryToggle = useCallback(() => {
@@ -140,6 +118,13 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
         fetchHistory();
       }
     }, [showHistory, fetchHistory]);
+
+    useEffect(() => {
+      if (shouldReset && mode === 'pomodoro') {
+        resetCompletedPomodoros();       // 👉 reset saat sudah balik ke pomodoro
+        setShouldReset(false);           // bersihin flag biar gak keulang
+      }
+    }, [mode, shouldReset, resetCompletedPomodoros]);
 
 
     const handleTimerComplete = useCallback(async () => {
@@ -158,48 +143,39 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
         });
 
         if (mode === 'pomodoro') {
-          const newCount = completedPomodoros + 1;
-          updateCompletedPomodoros(newCount);
-          await fetchHistory();
-
-          showTempNotification(`Great job! ${newCount} focus sessions completed`);
-          
-          const currentCount = completedPomodoros + 1;
-        if (currentCount % 4 === 0) {
+        const newCount = completedPomodoros + 1;
+        updateCompletedPomodoros(newCount); 
+        if (newCount % 4 === 0) {
           switchMode('long_break');
-          }
-        else {
+          } else {
             switchMode('short_break');
           }
+          showTempNotification(`Great job! ${newCount} focus sessions completed`);
         } else {
-          // After break, switch back to pomodoro mode
-          if (mode === 'long_break') {
-            updateCompletedPomodoros(0); // Reset counter after long break
-            switchMode('pomodoro', true);
-          } else {
-            switchMode('pomodoro', false);
+              // After break, switch back to pomodoro mode
+              if (mode === 'long_break') {
+                setShouldReset(true);
+              } switchMode('pomodoro');
+            }
+                
+            // Refresh data after saving
+            await Promise.all([fetchHistory(), fetchSummary()]);
+          } catch (error) {
+            console.error('Error:', error);
+            showTempNotification('Failed to save session');
           }
-        }
-        
-        // Refresh data after saving
-        await Promise.all([fetchHistory(), fetchSummary()]);
-      } catch (error) {
-        console.error('Error:', error);
-        showTempNotification('Failed to save session');
-      }
-    }, [
-      mode,
-      modes,
-      completedPomodoros,
-      userId,
-      updateCompletedPomodoros,
-      switchMode,
-      showTempNotification,
-      fetchHistory,
-      fetchSummary
-    ]);
-
-
+        }, [
+          mode,
+          modes,
+          userId,
+          switchMode,
+          showTempNotification,
+          fetchHistory,
+          fetchSummary,
+          audioRef,
+          completedPomodoros,
+          updateCompletedPomodoros,
+        ]);
 
     const checkDailyReset = useCallback(() => {
       const lastDate = localStorage.getItem('lastPomodoroDate');
@@ -221,6 +197,11 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
     }, [checkDailyReset]);
 
     const toggleTimer = () => {
+      if (timer <= 0) {
+        setTimer(modes[mode].duration); // Reset dulu
+        setProgress(0);
+        return;
+      }
       if (!isActive) {
         const now = Date.now();
         setSessionStartTime(now);
@@ -228,30 +209,25 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
 
         timerRef.current = setInterval(() => {
           setTimer((prevTimer) => {
-
             const newTimer = prevTimer - 1;
-            persistTimer();
-
             if (newTimer <= 0) {
                 clearInterval(timerRef.current!);
                 setIsActive(false);
                 setSessionStartTime(null);
                 handleTimerComplete();
+                setProgress(100);
                 return 0;
               }
+              // Update progress
+              const totalDuration = modes[mode].duration;
+              const newProgress = ((totalDuration - newTimer) / totalDuration) * 100;
+              setProgress(newProgress);
               return newTimer;
-            });
-          
-          // Update progress
-          const totalDuration = modes[mode].duration;
-          const remaining = timer - 1;
-          const newProgress = ((totalDuration - remaining) / totalDuration) * 100;
-          setProgress(newProgress);
+            })
         }, 1000);
       } else {
         if (timerRef.current) {
           clearInterval(timerRef.current);
-          persistTimer();
         }
       }
       setIsActive(!isActive);
@@ -308,7 +284,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
       
       if (lastDate !== today) {
         // Reset if it's a new day
-        updateCompletedPomodoros(0);
+        resetCompletedPomodoros();
       } else {
         // Restore today's count
         const saved = localStorage.getItem('completedPomodoros');
@@ -316,7 +292,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
           setCompletedPomodoros(parseInt(saved, 10));
         }
       }
-    }, [updateCompletedPomodoros]);
+    }, [resetCompletedPomodoros]);
 
   useEffect(() => {
       if (userId) {
@@ -442,7 +418,7 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-gray-500">Today&apos;s Focus</span>
               <span className="text-sm font-medium text-gray-700">
-                {completedPomodoros} / 4 sessions
+                {completedPomodoros % 4} / 4 sessions
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -521,8 +497,10 @@ const PomodoroTimer: React.FC<PomodoroTimerProps> = ({ userId }) => {
 
         <audio
           ref={audioRef}
-          src="https://assets.mixkit.co/sfx/preview/mixkit-positive-interface-beep-221.mp3"
-        />
+          src="/TimerSound.wav"
+          preload="auto"
+      />
+
       </div>
     );
 };
