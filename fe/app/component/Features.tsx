@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpenCheck, ClipboardList, Timer, Award } from 'lucide-react';
+
 interface Feature {
     icon: React.ReactNode;
     title: string;
     desc: string;
     details: string;
 }
-const features: Feature [] = [
+
+const features: Feature[] = [
     {
         icon: <BookOpenCheck className="w-7 h-7 text-[#C75F2A]" />,
         title: 'Interactive Courses',
@@ -31,16 +33,9 @@ const features: Feature [] = [
         details:
         'Set your preferred focus/break durations and track your session history for productivity analytics.',
     },
-    {
-        icon: <Award className="w-7 h-7 text-[#C75F2A]" />,
-        title: 'Achievement Badges',
-        desc: 'Earn badges like “Top Scorer” and “Course Finisher” to stay motivated.',
-        details:
-        'Collect digital badges, share them on LinkedIn, and unlock special features through your achievements.',
-    },
-    ];
+];
 
-    const cardVariant = {
+const cardVariant = {
     hidden: { opacity: 0, y: 60, scale: 0.85 },
     visible: (index: number) => ({
         opacity: 1,
@@ -52,11 +47,16 @@ const features: Feature [] = [
         ease: 'easeOut',
         },
     }),
+    hover: {
+        y: -10,
+        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
+        transition: { duration: 0.3 }
+    }
 };
 
 export default function Features() {
-    const [selected, setSelected] = useState<Feature | null>(null);
-
+const [selected, setSelected] = useState<Feature | null>(null);
+const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
     return (
         <section
@@ -74,7 +74,7 @@ export default function Features() {
             Why Choose <span className="text-fontgreen">EduMate?</span>
             </motion.h2>
 
-            <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+            <div className="flex flex-wrap justify-center gap-8">
             {features.map((feature, index) => (
                 <motion.div
                 key={index}
@@ -82,21 +82,41 @@ export default function Features() {
                 variants={cardVariant}
                 initial="hidden"
                 whileInView="visible"
+                whileHover="hover"
                 viewport={{ once: true, amount: 0.3 }}
                 onClick={() => setSelected(feature)}
-                whileHover={{ scale: 1.05 }}
-                className="cursor-pointer bg-white border border-[#F1DEC9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-transform duration-500 ease-in-out"
+                onHoverStart={() => setHoveredIndex(index)}
+                onHoverEnd={() => setHoveredIndex(null)}
+                className={`cursor-pointer bg-white border border-[#F1DEC9] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 ease-in-out w-full sm:w-[300px] ${
+                    hoveredIndex !== null && hoveredIndex !== index ? 'opacity-75 scale-95' : ''
+                }`}
                 >
-                <div className="flex flex-col items-center text-center">
-                    <div className="mb-4 flex items-center justify-center w-14 h-14 rounded-full bg-[#FFF3E6] ring-1 ring-[#F1DEC9]">
+                <div className="flex flex-col items-center text-center h-full">
+                    <motion.div 
+                    animate={{
+                        scale: hoveredIndex === index ? 1.1 : 1,
+                        rotate: hoveredIndex === index ? 5 : 0
+                    }}
+                    className="mb-4 flex items-center justify-center w-14 h-14 rounded-full bg-[#FFF3E6] ring-1 ring-[#F1DEC9]"
+                    >
                     {feature.icon}
-                    </div>
+                    </motion.div>
                     <h3 className="text-lg font-semibold mb-2 leading-snug">
                     {feature.title}
                     </h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
                     {feature.desc}
                     </p>
+                    <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ 
+                        opacity: hoveredIndex === index ? 1 : 0,
+                        height: hoveredIndex === index ? 'auto' : 0
+                    }}
+                    className="mt-3 text-xs text-gray-500"
+                    >
+                    Click for details →
+                    </motion.div>
                 </div>
                 </motion.div>
             ))}
@@ -114,27 +134,33 @@ export default function Features() {
                 onClick={() => setSelected(null)}
             >
                 <motion.div
-                className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-left"
+                className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-left mx-4"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
                 >
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="bg-[#FFF3E6] p-3 rounded-full ring-1 ring-[#F1DEC9]">
+                    <motion.div 
+                    animate={{ rotate: [0, 10, -10, 0] }}
+                    transition={{ duration: 0.5 }}
+                    className="bg-[#FFF3E6] p-3 rounded-full ring-1 ring-[#F1DEC9]"
+                    >
                     {selected.icon}
-                    </div>
+                    </motion.div>
                     <h3 className="text-xl font-semibold text-[#C75F2A]">
                     {selected.title}
                     </h3>
                 </div>
                 <p className="text-gray-700">{selected.details}</p>
-                <button
+                <motion.button
                     onClick={() => setSelected(null)}
                     className="mt-6 bg-[#C75F2A] text-white px-4 py-2 rounded-xl hover:bg-[#a84c1f] transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                 >
                     Close
-                </button>
+                </motion.button>
                 </motion.div>
             </motion.div>
             )}

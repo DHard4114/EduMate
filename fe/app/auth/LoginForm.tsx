@@ -41,7 +41,7 @@ export default function LoginForm({ onToggleAuth, loading, setLoading }: AuthFor
             localStorage.setItem('user', JSON.stringify(data.user));
             setUser(data.user);
             console.log('Login response:', data);
-            router.push('/content/account');
+            router.push('/content/course');
             
         } catch (err) {
             setError(err.response?.data?.message || err.message || 'Login failed');

@@ -41,3 +41,12 @@ export interface LevelProgress {
     percentage: number;
     completed_course_ids: string[];
 }
+
+export interface CourseMaterial {
+    id: string;
+    course_id: string;
+    title: string;
+    type: 'text' | 'video';
+    content: string;
+    order_number: number;
+}

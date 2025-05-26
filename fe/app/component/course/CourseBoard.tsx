@@ -4,25 +4,27 @@ import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
 import api from '@/app/lib/api';
-import { Course, LevelProgress } from './types';
+import { Course, LevelProgress, CourseMaterial } from './types';
 import CourseHeaderCard from './CourseHeaderCard';
 import LessonNode from './LessonNode';
+import LessonHeaderCard from "./LessonHeader";
+import TestOutCard from "./TestNode";
 
 export default function CourseBoard() {
     const { user } = useAuth();
     const router = useRouter();
     const [level, setLevel] = useState<string | null>(null);
     const [courses, setCourses] = useState<Course[]>([]);
+    const [materials, setMaterials] = useState<Record<string, CourseMaterial[]>>({});
     const [progress, setProgress] = useState<LevelProgress | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-;
 
     useEffect(() => {
         if (user?.level) {
             setLevel(user.level);
         }
-    }, [user]);;
+    }, [user]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -40,7 +42,22 @@ export default function CourseBoard() {
                 ]);
 
                 if (coursesResponse.data.success) {
-                    setCourses(coursesResponse.data.payload);
+                    const coursesData = coursesResponse.data.payload;
+                    setCourses(coursesData);
+
+                    const materialsData: Record<string, CourseMaterial[]> = {};
+                    for (const course of coursesData) {
+                        try {
+                            const materialsResponse = await api.get(`/course/${course.id}`);
+                            if (materialsResponse.data.success) {
+                                materialsData[course.id] = materialsResponse.data.payload.materials;
+                            }
+                        } catch (err) {
+                            console.error(`Error fetching materials for course ${course.id}:`, err);
+                            materialsData[course.id] = [];
+                        }
+                    }
+                    setMaterials(materialsData);
                 }
 
                 if (progressResponse?.data.success) {
@@ -57,30 +74,82 @@ export default function CourseBoard() {
         fetchData();
     }, [level, user?.id]);
 
-    
-
-    const lessonPositions = courses.map((_, index) => ({
-        x: 50 + (index % 2 === 0 ? 1 : -1) * 30 * 0.7,
-        y: index * 180 + 40
-    }));
-
-    const generatePathData = () => {
-        if (lessonPositions.length === 0) return '';
-        
-        let pathData = `M${lessonPositions[0].x},${lessonPositions[0].y}`;
-        for (let i = 1; i < lessonPositions.length; i++) {
-            const prev = lessonPositions[i - 1];
-            const curr = lessonPositions[i];
-            pathData += ` C${prev.x + 15},${prev.y + (curr.y - prev.y) / 2} ${curr.x - 15},${prev.y + (curr.y - prev.y) / 2} ${curr.x},${curr.y}`;
+    const handleNodeClick = (courseId: string, materialId: string, isLocked: boolean) => {
+        if (!isLocked) {
+            router.push(`/content/course/materials?level=${level}&courseId=${courseId}&materialId=${materialId}`);
         }
-        return pathData;
     };
 
-    const handleNodeClick = (courseId: string, isLocked: boolean) => {
-    if (!isLocked) {
-        router.push(`/content/course/materials?level=${level}&courseId=${courseId}`);
-    }
-};
+    const getNodePositions = () => {
+        const positions: {x: number, y: number, courseId: string, isCourseHeader?: boolean}[] = [];
+        let yPosition = 100;
+        const xPosition = 50;
+        
+        courses.forEach((course) => {
+            // Add course header position
+            positions.push({
+                x: xPosition,
+                y: yPosition,
+                courseId: course.id,
+                isCourseHeader: true
+            });
+            yPosition += 80; // Spacing after course header
+            
+            const courseMaterials = materials[course.id] || [];
+            
+            courseMaterials.forEach((material) => {
+                positions.push({
+                    x: xPosition,
+                    y: yPosition,
+                    courseId: course.id
+                });
+                yPosition += 100; // Spacing between lessons
+            });
+            
+            yPosition += 40; // Extra spacing after each course
+        });
+        
+        return positions;
+    };
+
+    const nodePositions = getNodePositions();
+
+    const generatePathData = () => {
+        if (nodePositions.length < 2) return '';
+
+        let pathData = '';
+        let currentCourse = '';
+
+        nodePositions.forEach((pos, index) => {
+            if (pos.isCourseHeader) {
+                currentCourse = pos.courseId;
+                return;
+            }
+
+            // Cari posisi sebelumnya dalam course yang sama
+            for (let i = index - 1; i >= 0; i--) {
+                const prevPos = nodePositions[i];
+                if (prevPos.courseId === currentCourse && !prevPos.isCourseHeader) {
+                    const x1 = prevPos.x;
+                    const y1 = prevPos.y;
+                    const x2 = pos.x;
+                    const y2 = pos.y;
+
+                    const dx = (x2 - x1) / 2;
+                    const controlX1 = x1 + dx;
+                    const controlY1 = y1;
+                    const controlX2 = x2 - dx;
+                    const controlY2 = y2;
+
+                    pathData += `M${x1},${y1} C${controlX1},${controlY1} ${controlX2},${controlY2} ${x2},${y2} `;
+                    break;
+                }
+            }
+        });
+
+        return pathData.trim();
+    };
+
 
     return (
         <div className="min-h-screen bg-white">
@@ -115,16 +184,10 @@ export default function CourseBoard() {
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green"></div>
                 </div>
             ) : (
-                <div className="relative py-10 px-4 flex justify-center"
-                    style={{
-                        height: `${courses.length * 180 + 200}px`,
-                        width: "600px",
-                        margin: "0 auto",
-                    }}
-                >
+                <div className="relative py-10 px-4">
                     <svg
-                        className="absolute top-20 left-0 w-full h-full"
-                        viewBox={`0 0 100 ${courses.length * 180 + 100}`}
+                        className="absolute top-0 left-0 w-full h-full"
+                        viewBox="0 0 100 1000" // Increased height to accommodate vertical layout
                         preserveAspectRatio="none"
                     >
                         <path
@@ -136,27 +199,43 @@ export default function CourseBoard() {
                         />
                     </svg>
 
-                    <div className="relative z-10 w-full h-full mt-32">
-                        {courses.map((course, index) => {
-                            const isLocked = index > 0 && !progress?.completed_course_ids?.includes(courses[index - 1].id);
+                    <div className="relative z-10 max-w-2xl mx-auto">
+                        {courses.map((course) => {
+                            const courseMaterials = materials[course.id] || [];
+                            const isLocked = courses.indexOf(course) > 0 && 
+                                        !progress?.completed_course_ids?.includes(courses[courses.indexOf(course) - 1].id);
                             
                             return (
-                                <div
-                                    key={course.id}
-                                    className="absolute"
-                                    style={{
-                                        left: `${lessonPositions[index].x}%`,
-                                        top: `${lessonPositions[index].y}px`,
-                                        transform: "translate(-50%, -50%)",
-                                    }}
-                                >
-                                    <LessonNode
-                                        title={course.title}
-                                        completed={progress?.completed_course_ids?.includes(course.id)}
-                                        locked={isLocked}
-                                        current={index === progress?.completed}
-                                        onClick={() => handleNodeClick(course.id, isLocked)}
-                                    />
+                                <div key={course.id} className="mb-12">
+                                    {/* Course Header */}
+                                    <div className="flex justify-center mb-4">
+                                        <LessonHeaderCard course={course.title} />
+                                    </div>
+                                    
+                                    <div className="flex flex-col items-center">
+                                        {courseMaterials.length > 0 ? (
+                                            courseMaterials.map((material, materialIndex) => {
+                                                const isCurrent = courses.indexOf(course) === progress?.completed && 
+                                                            materialIndex === 0;
+                                                return (
+                                                    <div key={material.id} className="mb-8">
+                                                        <LessonNode
+                                                            title={material.title}
+                                                            completed={progress?.completed_material_ids?.includes(material.id)}
+                                                            locked={isLocked}
+                                                            current={isCurrent}
+                                                            onClick={() => handleNodeClick(course.id, material.id, isLocked)}
+                                                        />
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="text-gray-500 italic mb-8">No materials available</div>
+                                        )}
+                                    </div>
+                                    <div className="flex justify-center mb-4">
+                                        <TestOutCard />
+                                    </div>
                                 </div>
                             );
                         })}
