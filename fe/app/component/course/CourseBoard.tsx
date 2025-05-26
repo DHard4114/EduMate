@@ -114,42 +114,6 @@ export default function CourseBoard() {
 
     const nodePositions = getNodePositions();
 
-    const generatePathData = () => {
-        if (nodePositions.length < 2) return '';
-
-        let pathData = '';
-        let currentCourse = '';
-
-        nodePositions.forEach((pos, index) => {
-            if (pos.isCourseHeader) {
-                currentCourse = pos.courseId;
-                return;
-            }
-
-            // Cari posisi sebelumnya dalam course yang sama
-            for (let i = index - 1; i >= 0; i--) {
-                const prevPos = nodePositions[i];
-                if (prevPos.courseId === currentCourse && !prevPos.isCourseHeader) {
-                    const x1 = prevPos.x;
-                    const y1 = prevPos.y;
-                    const x2 = pos.x;
-                    const y2 = pos.y;
-
-                    const dx = (x2 - x1) / 2;
-                    const controlX1 = x1 + dx;
-                    const controlY1 = y1;
-                    const controlX2 = x2 - dx;
-                    const controlY2 = y2;
-
-                    pathData += `M${x1},${y1} C${controlX1},${controlY1} ${controlX2},${controlY2} ${x2},${y2} `;
-                    break;
-                }
-            }
-        });
-
-        return pathData.trim();
-    };
-
 
     return (
         <div className="min-h-screen bg-white">
@@ -185,19 +149,6 @@ export default function CourseBoard() {
                 </div>
             ) : (
                 <div className="relative py-10 px-4">
-                    <svg
-                        className="absolute top-0 left-0 w-full h-full"
-                        viewBox="0 0 100 1000" // Increased height to accommodate vertical layout
-                        preserveAspectRatio="none"
-                    >
-                        <path
-                            d={generatePathData()}
-                            fill="none"
-                            stroke="#E5E7EB"
-                            strokeWidth="2"
-                            strokeDasharray="5,5"
-                        />
-                    </svg>
 
                     <div className="relative z-10 max-w-2xl mx-auto">
                         {courses.map((course) => {
@@ -209,7 +160,7 @@ export default function CourseBoard() {
                                 <div key={course.id} className="mb-12">
                                     {/* Course Header */}
                                     <div className="flex justify-center mb-4">
-                                        <LessonHeaderCard course={course.title} />
+                                        <LessonHeaderCard course={course.title} description={course.description} />
                                     </div>
                                     
                                     <div className="flex flex-col items-center">
