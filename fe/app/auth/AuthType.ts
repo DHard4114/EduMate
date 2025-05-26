@@ -74,6 +74,12 @@ export interface AuthHeaderProps {
     subtitle: string;
 }
 
+export interface AuthFormProps {
+    onToggleAuth: () => void;
+    loading: boolean;
+    setLoading: (loading: boolean) => void;
+}
+
 export interface AuthErrorProps {
     error: string;
 }

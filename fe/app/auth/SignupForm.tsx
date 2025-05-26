@@ -64,7 +64,9 @@ export default function SignupForm({ onToggleAuth, loading, setLoading }: AuthFo
             });
 
             if (response.data.success) {
-                window.location.reload()
+                setLoading(false);
+                onToggleAuth();
+                setError('Registration successful! Please login');
             } else {
                 throw new Error(response.data.message || 'Registration failed');
             }
