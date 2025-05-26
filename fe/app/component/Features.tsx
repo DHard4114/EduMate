@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpenCheck, ClipboardList, Timer, Award } from 'lucide-react';
-
-const features = [
+interface Feature {
+    icon: React.ReactNode;
+    title: string;
+    desc: string;
+    details: string;
+}
+const features: Feature [] = [
     {
         icon: <BookOpenCheck className="w-7 h-7 text-[#C75F2A]" />,
         title: 'Interactive Courses',
@@ -50,7 +55,8 @@ const features = [
 };
 
 export default function Features() {
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState<Feature | null>(null);
+
 
     return (
         <section

@@ -55,6 +55,28 @@ exports.getUserGroups = async (req, res) => {
     }
 };
 
+exports.removeMemberByUsername = async (req, res) => {
+    try {
+        const group_id = req.params.group_id;
+        const username = req.params.username;
+        const user_id = req.user.user_id;
+
+        const removed = await groupRepo.removeMemberFromGroupByUsername({
+            group_id,
+            username,
+            user_id
+        });
+
+        if (!removed) {
+            return res.status(403).json({ success: false, message: "Only group creator can remove members" });
+        }
+
+        res.json({ success: true, message: "Member removed from group" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message, payload: null });
+    }
+}
+
 // Menghapus grup (hanya bisa oleh pembuat)
 exports.deleteGroup = async (req, res) => {
     try {

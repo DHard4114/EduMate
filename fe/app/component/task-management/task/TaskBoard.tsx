@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import api from '../../lib/api';
+import api from '../../../lib/api';
 import TaskCard from './TaskCard';
-import ProgressBar from './ProgressBar';
+import ProgressBar from '../ProgressBar';
 import TaskForm from './TaskForm';
-import GroupChat from './GroupChat';
-import { Task, TaskProgress, TaskStatus, TaskSummary} from '../task-management/Types';
+import GroupChat from '../group/GroupChat';
+import TaskStatusModal from './TaskStatusModal';
+import { Task, TaskProgress, TaskStatus, TaskSummary} from '../Types';
 import { GoTrash } from "react-icons/go";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoChatbubblesOutline } from "react-icons/io5";
@@ -27,6 +28,9 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
     const [showForm, setShowForm] = useState(false);
     const [showChat, setShowChat] = useState(false);
     const [tempStatus, setTempStatus] = useState<TaskStatus>('todo');
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
 
     // Fetch tasks when component mounts or groupId changes
     useEffect(() => {
@@ -66,7 +70,7 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
     }, [groupId]);
 
 
-    const handleDeleteTask = async (taskId: number) => {
+    const handleDeleteTask = async (taskId: string) => { // Change parameter type to string
         try {
             const response = await api.delete(`/task/${taskId}`);
             if (response.data?.success) {
@@ -92,7 +96,7 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
         try {
             const response = await api.post('/task', {
                 ...newTask,
-                group_id: parseInt(groupId), // Add group_id
+                group_id: groupId, // No need to parse as integer
                 status: tempStatus
             });
 
@@ -124,27 +128,63 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
         setShowTrash(true);
     };
 
-    const handleDrop = async (status: TaskStatus) => {
-        if (draggedTask) {
-            try {
-                const response = await api.patch(`/task/${draggedTask.id}`, {
-                    status
-                });
-
-                if (response.data?.success) {
-                    const updatedTasks = tasks.map(t => 
-                        t.id === draggedTask.id ? { ...t, status } : t
-                    );
-                    setTasks(updatedTasks);
-                }
-            } catch (err) {
-                console.error('Failed to update task:', err);
-                setError('Failed to update task status');
-            }
-        }
-        setDraggedTask(null);
+    const handleStatusChange = (task: Task, newStatus: TaskStatus) => {
+        setSelectedTask(task);
+        setPendingStatus(newStatus);
+        setShowStatusModal(true);
     };
 
+    const confirmStatusChange = async (task: Task, newStatus: TaskStatus) => {
+        try {
+            const response = await api.put(`/task/${task.id}`, {
+                status: newStatus
+            });
+
+            if (response.data?.success) {
+                setTasks(prev => prev.map(t => 
+                    t.id === task.id ? { ...t, status: newStatus } : t
+                ));
+                await refreshData();
+            }
+        } catch (err) {
+            console.error('Failed to update task status:', err);
+            setError('Failed to update task status');
+        } finally {
+            setShowStatusModal(false);
+            setSelectedTask(null);
+            setPendingStatus(null);
+        }
+    };
+
+    const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData('taskId');
+        const droppedTask = tasks.find(task => task.id === taskId);
+        
+        if (droppedTask) {
+            await handleStatusChange(droppedTask, status);
+        }
+    };
+
+    const refreshData = async () => {
+        if (!groupId) return;
+
+        try {
+            const [progressRes, summaryRes] = await Promise.all([
+                api.get(`/task/group/${groupId}/progress`),
+                api.get(`/task/group/${groupId}/summary`)
+            ]);
+
+            if (progressRes.data?.success) {
+                setProgress(progressRes.data.payload);
+            }
+            if (summaryRes.data?.success) {
+                setSummary(summaryRes.data.payload);
+            }
+        } catch (err) {
+            console.error('Failed to refresh data:', err);
+        }
+    };
 
     const filteredTasks = (status: TaskStatus) => {
         return tasks.filter(task => task.status === status);
@@ -175,8 +215,9 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
             {showForm && (
                 <div className="fixed inset-0 bg-gray-200 bg-opacity-100 flex items-center justify-center z-50">
                     <TaskForm 
-                        onSave={handleSaveTask} 
-                        onCancel={() => setShowForm(false)} 
+                        groupId={groupId!} // Pass the groupId prop
+                        onSave={handleSaveTask}
+                        onCancel={() => setShowForm(false)}
                     />
                 </div>
             )}
@@ -232,7 +273,7 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
                             'bg-greenbase border border-green-100'
                         }`}
                         onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDrop(status)}
+                        onDrop={(e) => handleDrop(e, status)}
                     >
                         {/* Updated Header with summary count */}
                         <div className={`px-4 py-2 flex justify-between items-center ${
@@ -270,11 +311,12 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
                         {/* Task content */}
                         <div className="p-4 space-y-4">
                             {filteredTasks(status).map(task => (
-                            <TaskCard 
-                                key={task.id} 
-                                task={task} 
-                                onDragStart={handleDragStart}
-                            />
+                                <TaskCard 
+                                    key={task.id} 
+                                    task={task} 
+                                    onDragStart={handleDragStart}
+                                    onStatusChange={handleStatusChange}
+                                />
                             ))}
                         </div>
                         </div>
@@ -294,7 +336,7 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
             <div className="fixed right-6 bottom-20 z-30 w-80 bg-basegreen rounded-lg shadow-xl border border-gray-200">
                 <div className="p-3 bg-gray-200 text-gray-800 rounded-t-lg flex justify-between items-center">
                 <h3 className="font-bold text-xl">Discussion</h3>
-                <button 
+                <button
                     onClick={toggleChat}
                     className="text-white hover:text-fontgreen"
                 >
@@ -323,6 +365,19 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
                     </button>
                 </div>
             )}
+
+            {/* Add the modal component */}
+            <TaskStatusModal
+                isOpen={showStatusModal}
+                onClose={() => {
+                    setShowStatusModal(false);
+                    setSelectedTask(null);
+                    setPendingStatus(null);
+                }}
+                onConfirm={confirmStatusChange}
+                task={selectedTask}
+                newStatus={pendingStatus || 'todo'}
+            />
         </div>
     );
 };

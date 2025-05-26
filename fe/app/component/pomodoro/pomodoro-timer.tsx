@@ -83,7 +83,7 @@ const [shouldReset, setShouldReset] = useState(false);
 
   const fetchSummary = useCallback(async () => {
     try {
-      const response = await api.get('/pomodoro/summary');
+      const response = await api.get('pomodoro/summary');
       setSummary(response.data.payload);
     } catch (error) {
       console.error('Error fetching summary:', error);
@@ -277,7 +277,6 @@ const [shouldReset, setShouldReset] = useState(false);
       }
     }, []);
 
-
     useEffect(() => {
       const lastDate = localStorage.getItem('lastPomodoroDate');
       const today = new Date().toDateString();
@@ -335,8 +334,8 @@ const [shouldReset, setShouldReset] = useState(false);
                 key={key}
                 onClick={() => switchMode(key)}
                 className={`flex-1 text-sm font-medium px-3 py-2 rounded-lg transition-all ${
-                  mode === key 
-                    ? `${modes[key].color} text-white shadow-md` 
+                  mode === key
+                    ? `${modes[key].color} text-white shadow-md`
                     : `${modes[key].bg} text-gray-600 hover:${modes[key].bg} hover:bg-opacity-70`
                 }`}
               >
@@ -374,6 +373,7 @@ const [shouldReset, setShouldReset] = useState(false);
                   className="transition-all duration-1000 ease-linear"
                 />
               </svg>
+              
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className={`text-4xl font-mono font-bold ${modes[mode].text}`}>
                   {formatTime(timer)}

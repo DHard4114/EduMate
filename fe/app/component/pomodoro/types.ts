@@ -27,4 +27,5 @@ export interface PomodoroTimerProps {
 
 export interface PomodoroSummary {
     total_minutes: number;
+    completed_sessions: number;
 }

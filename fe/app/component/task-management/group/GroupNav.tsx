@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { FiUsers, FiBook, FiLoader } from 'react-icons/fi'
 import { motion } from 'framer-motion'
-import api from '../../lib/api'
-import { ApiResponse } from './Types'
+import api from '../../../lib/api'
+import { ApiResponse } from '../Types'
 
 interface Group {
     id: number;
@@ -27,9 +27,22 @@ export default function GroupNavbar({ onGroupSelect }: GroupNavProps) {
     useEffect(() => {
         const fetchGroups = async () => {
             try {
+                // Keep using mygroups endpoint
                 const response = await api.get<ApiResponse<Group[]>>('/group/mygroups')
                 if (response.data.success) {
                     setGroups(response.data.payload)
+                    
+                    // Restore active group from localStorage if it exists
+                    const savedGroupId = localStorage.getItem('activeGroupId')
+                    if (savedGroupId) {
+                        const groupExists = response.data.payload.some(
+                            group => group.id === parseInt(savedGroupId)
+                        )
+                        if (groupExists) {
+                            setActiveGroup(parseInt(savedGroupId))
+                            onGroupSelect(savedGroupId)
+                        }
+                    }
                 } else {
                     setError('Failed to load groups')
                 }
@@ -42,13 +55,16 @@ export default function GroupNavbar({ onGroupSelect }: GroupNavProps) {
         }
 
         fetchGroups()
-    }, [])
+    }, [onGroupSelect])
 
     const handleGroupClick = (groupId: number): void => {
-        setActiveGroup(groupId);
-        onGroupSelect(groupId.toString());
-        router.push(`/content/group`);
-    };
+        setActiveGroup(groupId)
+        onGroupSelect(groupId.toString())
+        // Save selected group to localStorage
+        localStorage.setItem('activeGroupId', groupId.toString())
+        // Keep navigation to group page
+        router.push(`/content/task-manager`)
+    }
 
     const getGroupInitials = (groupName: string): string => {
         return groupName

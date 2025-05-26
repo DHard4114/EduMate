@@ -5,6 +5,7 @@ const verifyToken = require('../../middleware/verifyToken');
 
 router.post('/', verifyToken, groupController.createGroup);
 router.post('/addmember', verifyToken, groupController.addMemberByUsername);
+router.delete('/:group_id/members/:username', verifyToken, groupController.removeMemberByUsername);
 router.get('/:group_id/members', verifyToken, groupController.getGroupMembers);
 router.get('/mygroups', verifyToken, groupController.getUserGroups);
 router.delete('/:group_id', verifyToken, groupController.deleteGroup);
