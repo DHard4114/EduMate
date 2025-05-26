@@ -26,7 +26,7 @@ const [shouldReset, setShouldReset] = useState(false);
   const modes: Modes = useMemo(() => ({
       pomodoro: {
         name: 'Focus',
-        duration: 1 * 60,
+        duration: 25 * 60,
         color: 'bg-green',
         text: 'text-green',
         ring: 'ring-green',
@@ -34,7 +34,7 @@ const [shouldReset, setShouldReset] = useState(false);
       },
       short_break: {
         name: 'Short Break',
-        duration: 1 * 60,
+        duration: 5 * 60,
         color: 'bg-bluetime',
         text: 'text-bluetime',
         ring: 'ring-bluetime',
@@ -42,7 +42,7 @@ const [shouldReset, setShouldReset] = useState(false);
       },
       long_break: {
         name: 'Long Break',
-        duration: 1 * 60,
+        duration: 15 * 60,
         color: 'bg-time',
         text: 'text-time',
         ring: 'ring-time',
