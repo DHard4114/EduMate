@@ -7,7 +7,7 @@ import ProgressBar from '../ProgressBar';
 import TaskForm from './TaskForm';
 import GroupChat from '../group/GroupChat';
 import TaskStatusModal from './TaskStatusModal';
-import { Task, TaskProgress, TaskStatus, TaskSummary} from '../Types';
+import { Task, TaskProgress, TaskStatus, TaskSummary, Group} from '../Types';
 import { GoTrash } from "react-icons/go";
 import { CiCirclePlus } from "react-icons/ci";
 import { IoChatbubblesOutline } from "react-icons/io5";
@@ -31,43 +31,54 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
+    const [group, setGroup] = useState<Group | null>(null);
 
     // Fetch tasks when component mounts or groupId changes
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!groupId) {
-                setLoading(false);
-                return;
+useEffect(() => {
+    const fetchData = async () => {
+        if (!groupId) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const [tasksRes, progressRes, summaryRes, membersRes] = await Promise.all([
+                api.get(`/task/group/${groupId}`),
+                api.get(`/task/group/${groupId}/progress`),
+                api.get(`/task/group/${groupId}/summary`),
+                api.get(`/group/${groupId}/members`) // Changed from /group/${groupId} to match backend route
+            ]);
+
+            // Add response validation
+            if (!tasksRes.data?.success || !progressRes.data?.success || 
+                !summaryRes.data?.success || !membersRes.data?.success) {
+                throw new Error('Invalid response from server');
             }
 
-            setLoading(true);
-            try {
-                // Use the correct API endpoints
-                const [tasksRes, progressRes, summaryRes] = await Promise.all([
-                    api.get(`/task/group/${groupId}`),
-                    api.get(`/task/group/${groupId}/progress`),
-                    api.get(`/task/group/${groupId}/summary`)
-                ]);
-
-                if (tasksRes.data?.success) {
-                    setTasks(tasksRes.data.payload);
-                }
-                if (progressRes.data?.success) {
-                    setProgress(progressRes.data.payload);
-                }
-                if (summaryRes.data?.success) {
-                    setSummary(summaryRes.data.payload);
-                }
-            } catch (err) {
-                console.error('Failed to fetch task data:', err);
-                setError('Failed to load tasks');
-            } finally {
-                setLoading(false);
+            setTasks(tasksRes.data.payload);
+            setProgress(progressRes.data.payload);
+            setSummary(summaryRes.data.payload);
+            
+            // Update group with members data
+            if (membersRes.data.success) {
+                setGroup({
+                    id: groupId,
+                    members: membersRes.data.payload,
+                    name: '', // These can be updated if you add a route to fetch group details
+                    description: ''
+                });
             }
-        };
+        } catch (err) {
+            console.error('Failed to fetch task data:', err);
+            setError('Failed to load tasks and group data');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchData();
-    }, [groupId]);
+    fetchData();
+}, [groupId]);
 
 
     const handleDeleteTask = async (taskId: string) => { // Change parameter type to string
@@ -141,7 +152,7 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
             });
 
             if (response.data?.success) {
-                setTasks(prev => prev.map(t => 
+                setTasks(prev => prev.map(t =>
                     t.id === task.id ? { ...t, status: newStatus } : t
                 ));
                 await refreshData();
@@ -311,11 +322,12 @@ const TaskBoard = ({ groupId }: TaskBoardProps) => {
                         {/* Task content */}
                         <div className="p-4 space-y-4">
                             {filteredTasks(status).map(task => (
-                                <TaskCard 
-                                    key={task.id} 
-                                    task={task} 
+                                <TaskCard
+                                    key={task.id}
+                                    task={task}
                                     onDragStart={handleDragStart}
                                     onStatusChange={handleStatusChange}
+                                    groupMembers={group?.members || []}
                                 />
                             ))}
                         </div>

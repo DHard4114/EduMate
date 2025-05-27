@@ -144,7 +144,7 @@ const [shouldReset, setShouldReset] = useState(false);
 
         if (mode === 'pomodoro') {
         const newCount = completedPomodoros + 1;
-        updateCompletedPomodoros(newCount); 
+        updateCompletedPomodoros(newCount);
         if (newCount % 4 === 0) {
           switchMode('long_break');
           } else {

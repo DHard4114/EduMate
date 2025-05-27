@@ -130,7 +130,7 @@ const CreateGroupPage = () => {
             setShowSuccess(true);
             setTimeout(() => {
                 setShowSuccess(false);
-                router.push(`/group/${groupId}`);
+                router.push(`/content/task-manager`);
             }, 2000);
 
         } catch (error) {

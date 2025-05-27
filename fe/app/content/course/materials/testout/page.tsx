@@ -1,25 +1,32 @@
 'use client';
 
+import api from '@/app/lib/api';
+import toast from 'react-hot-toast';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
-import api from '@/app/lib/api';
 import { CourseQuiz } from '@/app/component/course/types';
+import { useAuth } from '@/app/component/auth-context';
 
 export default function TestOutPage() {
     const [quizzes, setQuizzes] = useState<CourseQuiz[]>([]);
-    const [answers, setAnswers] = useState<Record<number, string>>({});
+    const [answers, setAnswers] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState<number | null>(null);
+    const [submitting, setSubmitting] = useState(false);
     
     const router = useRouter();
     const searchParams = useSearchParams();
     const courseId = searchParams.get('courseId');
     const level = searchParams.get('level');
+    const { user } = useAuth();
 
+    // Fetch quizzes for this course
     useEffect(() => {
         const fetchQuizzes = async () => {
+            if (!courseId) return;
+            
             try {
                 setLoading(true);
                 const response = await api.get(`/course/${courseId}/quizzes`);
@@ -28,17 +35,16 @@ export default function TestOutPage() {
                 }
             } catch (error) {
                 console.error('Failed to fetch quizzes:', error);
+                toast.error('Failed to load quiz questions');
             } finally {
                 setLoading(false);
             }
         };
 
-        if (courseId) {
-            fetchQuizzes();
-        }
+        fetchQuizzes();
     }, [courseId]);
 
-    const handleAnswerChange = (quizId: number, answer: string) => {
+    const handleAnswerChange = (quizId: string, answer: string) => {
         setAnswers(prev => ({
             ...prev,
             [quizId]: answer
@@ -46,20 +52,43 @@ export default function TestOutPage() {
     };
 
     const handleSubmit = async () => {
-        try {
-            const response = await api.post(`/course/${courseId}/quiz/answer`, {
-                answers: Object.entries(answers).map(([quizId, answer]) => ({
-                    quiz_id: Number(quizId),
-                    selected_answer: answer
-                }))
-            });
+        if (!user || !courseId) {
+            toast.error('Missing required information');
+            return;
+        }
 
-            if (response.data.success) {
-                setScore(response.data.payload.score);
+        try {
+            setSubmitting(true);
+
+            // Submit each answer individually as per backend API
+            for (const [quizId, selectedAnswer] of Object.entries(answers)) {
+                await api.post('/course/quiz/answer', {
+                    quiz_id: quizId,
+                    selected_answer: selectedAnswer
+                });
+            }
+
+            // Get updated score
+            const scoreResponse = await api.get(`/course/${courseId}`);
+            
+            if (scoreResponse.data.success && scoreResponse.data.payload.score) {
+                const finalScore = scoreResponse.data.payload.score.percentage;
+                setScore(finalScore);
                 setSubmitted(true);
+
+                if (finalScore >= 70) {
+                    // Update level progress
+                    await api.get(`/course/level/${level}/progress`);
+                    toast.success('Test completed successfully!');
+                } else {
+                    toast.error('You need 70% or higher to pass. Try again!');
+                }
             }
         } catch (error) {
             console.error('Failed to submit answers:', error);
+            toast.error('Failed to submit answers. Please try again.');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -93,7 +122,7 @@ export default function TestOutPage() {
                             Your Score: {score}%
                         </h2>
                         <button
-                            onClick={() => router.push(`/course/${level}`)}
+                            onClick={() => router.push(`/content/course`)}
                             className="bg-[#5A6D51] text-white px-8 py-3 rounded-full hover:bg-[#C75F2A] transition-colors"
                         >
                             Return to Course
@@ -123,7 +152,7 @@ export default function TestOutPage() {
                                                 name={`quiz-${quiz.id}`}
                                                 value={option}
                                                 checked={answers[quiz.id] === option}
-                                                onChange={() => handleAnswerChange(quiz.id, option)}
+                                                onChange={() => handleAnswerChange(quiz.id, option)} // Changed from quiz to quiz.id
                                                 className="form-radio text-[#5A6D51]"
                                             />
                                             <span className="text-gray-700">{option}</span>
@@ -140,7 +169,7 @@ export default function TestOutPage() {
                         >
                             <button
                                 onClick={handleSubmit}
-                                disabled={Object.keys(answers).length !== quizzes.length}
+                                disabled={Object.keys(answers).length !== quizzes.length || submitting}
                                 className={`
                                     px-8 py-3 rounded-full text-white font-semibold
                                     ${Object.keys(answers).length !== quizzes.length
@@ -149,7 +178,7 @@ export default function TestOutPage() {
                                     }
                                 `}
                             >
-                                Submit Answers
+                                {submitting ? 'Submitting...' : 'Submit Answers'}
                             </button>
                         </motion.div>
                     </div>

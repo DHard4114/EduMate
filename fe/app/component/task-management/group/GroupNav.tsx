@@ -7,10 +7,12 @@ import { motion } from 'framer-motion'
 import api from '../../../lib/api'
 import { ApiResponse } from '../Types'
 
+// Update the Group interface to match your API response
 interface Group {
-    id: number;
+    id: string; // Change to string since we're using UUIDs
     name: string;
-    created_by: number;
+    description: string;
+    created_by: string;
 }
 
 export interface GroupNavProps {
@@ -22,7 +24,8 @@ export default function GroupNavbar({ onGroupSelect }: GroupNavProps) {
     const [groups, setGroups] = useState<Group[]>([])
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(true)
-    const [activeGroup, setActiveGroup] = useState<number | null>(null)
+    // Update state type
+    const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchGroups = async () => {
@@ -32,14 +35,14 @@ export default function GroupNavbar({ onGroupSelect }: GroupNavProps) {
                 if (response.data.success) {
                     setGroups(response.data.payload)
                     
-                    // Restore active group from localStorage if it exists
+                    // Update localStorage handling for UUID
                     const savedGroupId = localStorage.getItem('activeGroupId')
                     if (savedGroupId) {
                         const groupExists = response.data.payload.some(
-                            group => group.id === parseInt(savedGroupId)
+                            group => group.id === savedGroupId
                         )
                         if (groupExists) {
-                            setActiveGroup(parseInt(savedGroupId))
+                            setActiveGroup(savedGroupId)
                             onGroupSelect(savedGroupId)
                         }
                     }
@@ -57,13 +60,12 @@ export default function GroupNavbar({ onGroupSelect }: GroupNavProps) {
         fetchGroups()
     }, [onGroupSelect])
 
-    const handleGroupClick = (groupId: number): void => {
+    // Update the click handler for UUIDs
+    const handleGroupClick = (groupId: string): void => {
         setActiveGroup(groupId)
-        onGroupSelect(groupId.toString())
-        // Save selected group to localStorage
-        localStorage.setItem('activeGroupId', groupId.toString())
-        // Keep navigation to group page
-        router.push(`/content/task-manager`)
+        onGroupSelect(groupId)
+        localStorage.setItem('activeGroupId', groupId)
+        router.push('/content/task-manager')
     }
 
     const getGroupInitials = (groupName: string): string => {

@@ -1,14 +1,13 @@
 'use client';
 
+import api from '@/app/lib/api';
 import { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../auth-context';
-import api from '@/app/lib/api';
 import { Course, LevelProgress, CourseMaterial } from './types';
 import CourseHeaderCard from './CourseHeaderCard';
 import LessonNode from './LessonNode';
 import LessonHeaderCard from "./LessonHeader";
-import TestOutCard from "./TestNode";
 
 export default function CourseBoard() {
     const { user } = useAuth();
@@ -28,8 +27,8 @@ export default function CourseBoard() {
 
     useEffect(() => {
         const fetchData = async () => {
-            if (!level || !user?.id) return;
 
+            if (!level || !user?.id) return;
             try {
                 setLoading(true);
                 setError(null);
@@ -153,7 +152,7 @@ export default function CourseBoard() {
                     <div className="relative z-10 max-w-2xl mx-auto">
                         {courses.map((course) => {
                             const courseMaterials = materials[course.id] || [];
-                            const isLocked = courses.indexOf(course) > 0 && 
+                            const isLocked = courses.indexOf(course) > 0 &&
                                         !progress?.completed_course_ids?.includes(courses[courses.indexOf(course) - 1].id);
                             
                             return (
@@ -172,7 +171,7 @@ export default function CourseBoard() {
                                                     <div key={material.id} className="mb-8">
                                                         <LessonNode
                                                             title={material.title}
-                                                            completed={progress?.completed_material_ids?.includes(material.id)}
+                                                            completed={isLocked ? false : progress?.completed_course_ids?.includes(course.id)}
                                                             locked={isLocked}
                                                             current={isCurrent}
                                                             onClick={() => handleNodeClick(course.id, material.id, isLocked)}
@@ -183,9 +182,6 @@ export default function CourseBoard() {
                                         ) : (
                                             <div className="text-gray-500 italic mb-8">No materials available</div>
                                         )}
-                                    </div>
-                                    <div className="flex justify-center mb-4">
-                                        <TestOutCard />
                                     </div>
                                 </div>
                             );

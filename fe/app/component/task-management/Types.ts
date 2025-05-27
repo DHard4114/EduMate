@@ -1,6 +1,7 @@
 export interface Task {
     id: string; // UUID string
     group_id: string; // UUID string
+    
     title: string;
     description?: string;
     status: 'todo' | 'in_progress' | 'done';
@@ -15,7 +16,7 @@ export interface TaskFormProps {
     groupId: string; // Required UUID string
     onSave: (task: CreateTaskDto) => Promise<void>;
     onCancel: () => void;
-    groupMembers?: User[]; // Added to provide list of users for assignment
+    groupMembers?: User[];
 }
 
 export interface CreateTaskDto {
@@ -24,7 +25,7 @@ export interface CreateTaskDto {
     description?: string;
     status: 'todo' | 'in_progress' | 'done';
     severity: 'low' | 'medium' | 'high';
-    assigned_to?: string; // UUID string (user ID)
+    assigned_to?: string;
 }
 
 export interface TaskProgress {

@@ -26,8 +26,8 @@ export interface Material {
 }
 
 export interface CourseQuiz {
-    id: number;
-    course_id: number;
+    id: string;
+    course_id: string;
     question: string;
     options: string[];
     correct_answer: string;
@@ -40,6 +40,11 @@ export interface LevelProgress {
     total: number;
     percentage: number;
     completed_course_ids: string[];
+}
+
+export interface QuizAnswer {
+    quiz_id: string;
+    selected_answer: string;
 }
 
 export interface CourseMaterial {
