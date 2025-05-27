@@ -194,3 +194,24 @@ exports.getLevelProgress = async (req, res) => {
         res.status(500).json({ success: false, message: err.message, payload: null });
     }
 };
+
+// Mengambil semua kuis dari suatu course
+exports.getCourseQuizzes = async (req, res) => {
+    try {
+        const courseId = req.params.id;
+        const quizzes = await courseRepo.getCourseQuizzes(courseId);
+
+        res.status(200).json({
+            success: true,
+            message: "Quizzes retrieved",
+            payload: quizzes
+        });
+    } catch (err) {
+        console.error('Error fetching quizzes:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message,
+            payload: null
+        });
+    }
+};

@@ -19,5 +19,6 @@ router.get('/:id', verifyToken, courseController.getCourseById);
 router.get('/', verifyToken, courseController.getAllCourses);
 router.get('/level/:level', verifyToken, courseController.getCoursesByLevel);
 router.get('/level/:level/progress', verifyToken, courseController.getLevelProgress);
+router.get('/:id/quizzes', verifyToken, courseController.getCourseQuizzes);
 
 module.exports = router;

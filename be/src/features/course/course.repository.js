@@ -72,7 +72,7 @@ exports.getCourseById = async (id, user_id) => {
     if (user_id) {
         const scoreResult = await query(`
             SELECT COUNT(*) FILTER (WHERE quiz_answers.selected_answer = course_quizzes.correct_answer) AS correct,
-                   COUNT(*) AS total
+            COUNT(*) AS total
             FROM course_quizzes
             LEFT JOIN quiz_answers
             ON course_quizzes.id = quiz_answers.quiz_id AND quiz_answers.user_id = $1
@@ -156,4 +156,15 @@ exports.getLevelProgress = async (user_id, level) => {
         percentage,
         completed_course_ids: finished
     };
+};
+
+// Mengambil semua kuis dalam satu course
+exports.getCourseQuizzes = async (course_id) => {
+    const result = await query(`
+        SELECT * FROM course_quizzes
+        WHERE course_id = $1
+        ORDER BY id ASC
+    `, [course_id]);
+
+    return result.rows;
 };

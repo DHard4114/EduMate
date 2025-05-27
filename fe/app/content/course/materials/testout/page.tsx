@@ -8,7 +8,7 @@ import { CourseQuiz } from '@/app/component/course/types';
 
 export default function TestOutPage() {
     const [quizzes, setQuizzes] = useState<CourseQuiz[]>([]);
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [answers, setAnswers] = useState<Record<number, string>>({});
     const [loading, setLoading] = useState(true);
     const [submitted, setSubmitted] = useState(false);
     const [score, setScore] = useState<number | null>(null);
@@ -47,9 +47,9 @@ export default function TestOutPage() {
 
     const handleSubmit = async () => {
         try {
-            const response = await api.post(`/course/${courseId}/quiz-answers`, {
+            const response = await api.post(`/course/${courseId}/quiz/answer`, {
                 answers: Object.entries(answers).map(([quizId, answer]) => ({
-                    quiz_id: quizId,
+                    quiz_id: Number(quizId),
                     selected_answer: answer
                 }))
             });

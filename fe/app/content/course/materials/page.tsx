@@ -14,26 +14,25 @@ export default function CourseMaterialsPage() {
     const { user } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
-    
-    // Get parameters from URL query string
+
     const level = searchParams.get('level');
     const courseId = searchParams.get('courseId');
 
     useEffect(() => {
         const fetchCourse = async () => {
             if (!courseId) return;
-            
+
             try {
                 setLoading(true);
                 const response = await api.get(`/course/${courseId}`);
-                
+
                 if (response.data.success) {
                     const sortedMaterials = [...response.data.payload.materials].sort(
                         (a, b) => a.order_number - b.order_number
                     );
                     setCourse({
                         ...response.data.payload,
-                        materials: sortedMaterials
+                        materials: sortedMaterials,
                     });
                 }
             } catch (error) {
@@ -50,16 +49,15 @@ export default function CourseMaterialsPage() {
         if (!courseId || !level || !user) return;
 
         try {
-            // First mark the course as complete
             await api.post(`/course/quiz/answer`, {
                 userId: user.id,
                 courseId: courseId,
-                level: level
+                level: level,
             });
 
             setCompleted(true);
 
-            router.push(`/content/course/materials/testout?level=${level}&courseId=${courseId}`);
+            router.push(`/content/course/materials/testout`);
         } catch (error) {
             console.error('Failed to mark course as complete:', error);
         }
@@ -76,8 +74,8 @@ export default function CourseMaterialsPage() {
     if (!course) {
         return (
             <div className="min-h-screen bg-[#FFE0C8] flex items-center justify-center">
-                <div className="bg-white p-6 rounded-lg shadow-lg">
-                    <p className="text-red-600">Course not found</p>
+                <div className="bg-white p-6 rounded-lg shadow-lg text-center">
+                    <p className="text-red-600 font-medium">Course not found</p>
                     <button
                         onClick={() => router.back()}
                         className="mt-4 text-[#5A6D51] hover:text-[#C75F2A] transition-colors"
@@ -90,23 +88,29 @@ export default function CourseMaterialsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FFE0C8] px-6 py-20">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen bg-gradient-to-br from-[#FFE0C8] via-[#FFF3E5] to-[#D6E3C9] px-6 py-20 relative overflow-hidden">
+            {/* Optional background pattern */}
+            <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/food.png')] opacity-5 pointer-events-none"
+            />
+
+            <div className="relative max-w-5xl mx-auto z-10">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+                    className="mb-12"
                 >
                     <button
                         onClick={() => router.back()}
-                        className="text-[#5A6D51] hover:text-[#C75F2A] transition-colors mb-4"
+                        className="text-[#5A6D51] hover:text-[#C75F2A] transition-colors mb-6 text-lg"
                     >
                         ← Kembali
                     </button>
-                    <h1 className="text-4xl font-bold text-[#5A6D51] text-center mb-2">
+                    <h1 className="text-5xl sm:text-6xl font-extrabold text-[#5A6D51] text-center leading-tight tracking-wide drop-shadow-md">
                         {course.title}
                     </h1>
-                    <p className="text-[#C75F2A] text-center mb-12">
+                    <p className="text-[#C75F2A] text-center mt-4 text-lg sm:text-xl max-w-3xl mx-auto">
                         {course.description}
                     </p>
                 </motion.div>
@@ -118,27 +122,27 @@ export default function CourseMaterialsPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="bg-white rounded-xl shadow-lg overflow-hidden border border-[#D6E3C9]"
+                            className="bg-white rounded-2xl shadow-lg overflow-hidden border border-[#D6E3C9] hover:shadow-xl transition-shadow"
                         >
-                            <div className="p-6">
+                            <div className="p-6 sm:p-8">
                                 <div className="flex items-center mb-4">
-                                    <span className="bg-[#5A6D51] text-white rounded-full w-8 h-8 flex items-center justify-center mr-3">
+                                    <span className="bg-[#5A6D51] text-white font-bold rounded-full w-8 h-8 flex items-center justify-center mr-4">
                                         {index + 1}
                                     </span>
-                                    <h2 className="text-2xl font-semibold text-[#5A6D51]">
+                                    <h2 className="text-2xl sm:text-3xl font-semibold text-[#5A6D51]">
                                         {material.title}
                                     </h2>
                                 </div>
                                 <div className="prose prose-lg max-w-none">
                                     {material.type === 'text' ? (
-                                        <p className="text-gray-600 whitespace-pre-wrap">
+                                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
                                             {material.content}
                                         </p>
                                     ) : (
                                         <div className="aspect-w-16 aspect-h-9">
                                             <iframe
                                                 src={material.content}
-                                                className="w-full h-full rounded-lg"
+                                                className="w-full h-full rounded-lg border border-[#C75F2A]/30"
                                                 allowFullScreen
                                             />
                                         </div>
@@ -152,18 +156,16 @@ export default function CourseMaterialsPage() {
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-12 flex justify-center"
+                    className="mt-16 flex justify-center"
                 >
                     <button
                         onClick={handleComplete}
                         disabled={completed}
-                        className={`
-                            px-8 py-3 rounded-full text-white font-semibold
-                            ${completed
+                        className={`px-8 py-3 rounded-full text-white text-lg font-semibold shadow-md transition-all ${
+                            completed
                                 ? "bg-gray-400 cursor-not-allowed"
-                                : "bg-[#5A6D51] hover:bg-[#C75F2A] transition-colors"
-                            }
-                        `}
+                                : "bg-[#5A6D51] hover:bg-[#C75F2A]"
+                        }`}
                     >
                         {completed ? "Completed" : "Mark as Complete & Take Test"}
                     </button>
