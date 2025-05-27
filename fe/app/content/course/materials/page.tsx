@@ -49,15 +49,8 @@ export default function CourseMaterialsPage() {
         if (!courseId || !level || !user) return;
 
         try {
-            await api.post(`/course/quiz/answer`, {
-                userId: user.id,
-                courseId: courseId,
-                level: level,
-            });
-
             setCompleted(true);
-
-            router.push(`/content/course/materials/testout`);
+            router.push(`/content/course/materials/testout?level=${level}&courseId=${courseId}`);
         } catch (error) {
             console.error('Failed to mark course as complete:', error);
         }

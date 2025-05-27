@@ -80,39 +80,39 @@ export default function CourseBoard() {
         }
     };
 
-    const getNodePositions = () => {
-        const positions: {x: number, y: number, courseId: string, isCourseHeader?: boolean}[] = [];
-        let yPosition = 100;
-        const xPosition = 50;
+    // const getNodePositions = () => {
+    //     const positions: {x: number, y: number, courseId: string, isCourseHeader?: boolean}[] = [];
+    //     let yPosition = 100;
+    //     const xPosition = 50;
         
-        courses.forEach((course) => {
-            // Add course header position
-            positions.push({
-                x: xPosition,
-                y: yPosition,
-                courseId: course.id,
-                isCourseHeader: true
-            });
-            yPosition += 80; // Spacing after course header
+    //     courses.forEach((course) => {
+    //         // Add course header position
+    //         positions.push({
+    //             x: xPosition,
+    //             y: yPosition,
+    //             courseId: course.id,
+    //             isCourseHeader: true
+    //         });
+    //         yPosition += 80; // Spacing after course header
             
-            const courseMaterials = materials[course.id] || [];
+    //         const courseMaterials = materials[course.id] || [];
             
-            courseMaterials.forEach((material) => {
-                positions.push({
-                    x: xPosition,
-                    y: yPosition,
-                    courseId: course.id
-                });
-                yPosition += 100; // Spacing between lessons
-            });
+    //         courseMaterials.forEach((material) => {
+    //             positions.push({
+    //                 x: xPosition,
+    //                 y: yPosition,
+    //                 courseId: course.id
+    //             });
+    //             yPosition += 100; // Spacing between lessons
+    //         });
             
-            yPosition += 40; // Extra spacing after each course
-        });
+    //         yPosition += 40; // Extra spacing after each course
+    //     });
         
-        return positions;
-    };
+    //     return positions;
+    // };
 
-    const nodePositions = getNodePositions();
+    // const nodePositions = getNodePositions();
 
 
     return (
